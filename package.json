@@ -16,14 +16,9 @@
     "@cycle/dom": "^22.0.0",
     "@cycle/http": "^15.0.0",
     "@cycle/run": "^5.1.0",
-    "adm-zip": "^0.4.11",
-    "babel-plugin-transform-react-jsx": "^6.24.1",
     "d3": "^5.7.0",
-    "decompress-response": "^3.3.0",
     "jszip": "^3.1.5",
-    "node-zip": "^1.1.1",
     "snabbdom-pragma": "^2.7.0",
-    "unzip": "^0.1.11",
     "xstream": "^11.7.0"
   },
   "devDependencies": {
@@ -31,7 +26,7 @@
     "@babel/core": "^7.1.5",
     "@babel/preset-env": "^7.1.5",
     "babel-loader": "^8.0.4",
-    "babel-preset-es2015": "^6.24.1",
+    "babel-plugin-transform-react-jsx": "^6.24.1",
     "webpack": "^4.25.1",
     "webpack-cli": "^3.1.2",
     "webpack-dev-server": "^3.1.10"

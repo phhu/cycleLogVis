@@ -13,8 +13,6 @@ const getJson = pipe(prop('text'),JSON.parse);
 const getLog = pipe(prop('text'),parseLog);
 const tapText  =pipe(
   tap(x=>console.log(x))
-  ,require('decompress-response')
-  ,tap(x=>console.log(x))
   ,prop('text')
 )
 
@@ -31,7 +29,9 @@ const getResponse = sources => ({
 ;
 
 //  - see https://stuk.github.io/jszip/documentation/api_jszip/file_regex.html
-const getZip = ({transform = identity} = {}) => ({body}) => 
+const getZip = ({
+  transform = identity
+} = {}) => ({body}) => 
   JSZip.loadAsync(body)   
     .then(pipe(
       zip => zip.file(/.*./)    // can use regexp to get files - here the first one   /// [0].async("string")
