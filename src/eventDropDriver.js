@@ -1,17 +1,26 @@
 import * as d3 from "d3";
 //import eventDrops from 'event-drops';
 import eventDrops from '../../../Documents/GitHub/eventDrops/dist';
-//import {adapt} from '@cycle/run/lib/adapt';
+import xs from 'xstream';
+import './style.css';
 
-// see https://cycle.js.org/drivers.html#drivers-how-to-make-drivers. Adapt needed if we return something 
+// see https://cycle.js.org/drivers.html#drivers-how-to-make-drivers. 
+//Adapt needed if we return something 
+import {adapt} from '@cycle/run/lib/adapt';
 
 const tooltip = d3
-    .select('body')
-    .append('div')
-    .classed('tooltip', true)
-    .style('opacity', 0)
-    .style('pointer-events', 'auto');
+  .select('body')
+  .append('div')
+  .classed('tooltip', true)
+  .style('opacity', 0)
+  .style('pointer-events', 'auto');
 
+const getAllEvents = d => {
+  const d2 = d._allEvents;
+  delete d2[0]._allEvents;
+  return d2;
+} 
+  
 // have a look in https://github.com/marmelab/EventDrops/blob/master/src/config.js for examples
 const chart = eventDrops({
   metaballs: false,
@@ -28,18 +37,9 @@ const chart = eventDrops({
           data._allEvents.some(e=>e.text === text) ? color :acc 
       ),'black');  
     },
-    /*onClick: data => {
-      //console.log("clicked");
-      document.querySelector('#text').innerHTML  = `
-      <div class="commit">
-      <table class="content">` +
-      data._allEvents.map((e,i) => `
-          <tr><td>${i+1} - ${e.date} - ${e.level || ''} - ${e.text}</td><tr />
-      `).join('') +
-      `</table>`
-    },*/
+    onClick: data => update(getAllEvents(data)),
     onMouseOver: data => {
-      console.log(data);
+      //console.log(data);
       tooltip
         .transition()
         .duration(100)
@@ -57,13 +57,13 @@ const chart = eventDrops({
         .style('left', `${d3.event.pageX - 30}px`)
         .style('top', `${d3.event.pageY + 20}px`);
     },
-    onMouseOut: () => {
+    /*onMouseOut: () => {
       tooltip
-          .transition()
-          .duration(500)
-          .style('opacity', 0)
-          .style('pointer-events', 'none');
-    }
+        .transition()
+        .duration(500)
+        .style('opacity', 0)
+        .style('pointer-events', 'none');
+    }*/
   },
   d3,
   label: {
@@ -78,6 +78,32 @@ const chart = eventDrops({
     }
   },
 });
+
+var update = data => {}    // initial function does nothing - only once stream set up 
+
+export const updateChart = ({tag}) => data => {
+  console.log("dataForChart",data);
+  d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
+  d3.select(tag).data([data]).call(chart); 
+}
+
+export const makeEventDropDriver = opts => data$ => {
+
+  data$.addListener({
+    next: updateChart(opts),
+    error: console.error,
+    complete: () => {},
+  });
+
+  const incoming$ = xs.create({
+    start: listener => {
+      update = data => listener.next(data)
+    } 
+    ,stop: () => {},
+  });
+
+  return adapt(incoming$);     // no output
+}
 
 export const testData = [ {
   "name": "Speech Source Measure Export Adapter[RIEXTENDER102]**",
@@ -94,21 +120,3 @@ export const testData = [ {
     }
   ]
 }];
-
-export const updateChart = ({tag}) => data => {
-  console.log("dataForChart",data);
-  d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
-  d3.select(tag).data([data]).call(chart); 
-}
-
-export const makeEventDropDriver = opts => data$ => {
-
-  data$.addListener({
-    next: updateChart(opts),
-    error: console.error,
-    complete: () => {},
-  });
-  
-  return undefined;     // no output
-}
-

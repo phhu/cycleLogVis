@@ -1,0 +1,28 @@
+.tooltip .commit {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.tooltip .avatar {
+  width: 5rem;
+  height: 5rem;
+  border-radius: .5rem;
+  margin-right: 1rem;
+  flex: 0 0 5rem;
+}
+
+.tooltip .content {
+  flex: 1 0 0;
+}
+
+.tooltip h3 {
+  font-size: 1rem;
+}
+
+.tooltip p {
+  font-size: .9rem;
+  color: #777;
+}

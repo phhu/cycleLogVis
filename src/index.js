@@ -7,15 +7,13 @@ import Snabbdom from 'snabbdom-pragma';
 const parseLog = require('./parseLog')({includeLine:false});
 
 import {prop,pipe,path,map,tap,invoker,identity} from 'ramda';
-import {makeEventDropDriver} from './eventDropDriver';
+import {makeEventDropDriver,testData} from './eventDropDriver';
+const {makeDataTablesDriver} = require('./dataTablesDriver');
 
 const getZip = require('./getZip');
 const getJson = pipe(prop('text'),JSON.parse);
 const getLog = pipe(prop('text'),parseLog);
-const tapText  =pipe(
-  tap(x=>console.log(x))
-  ,prop('text')
-)
+const tapText = pipe(tap(x=>console.log(x)),prop('text'))
 
 const getResponse = sources => ({
   category = 'request'
@@ -29,26 +27,15 @@ const getResponse = sources => ({
     .startWith(startWith)
 ;
 
-
-
 const requests =[
   {category: 'timeline',url: '/data/timelineShort.json',  transform: getJson, startWith:[{name:"loading",data:[]}] },  // 
   {category: 'log', url: '/data/Plugin_BatchExtender102.log', transform: getLog },
   {category: 'zip', responseType: 'blob', url: '/data/2018-09-12-23-12-01-453.zip', transform: getZip({transform:parseLog}) },
 ];
 
-// proof that can unzip a file -- see https://stuk.github.io/jszip/documentation/api_jszip/file_regex.html
-// fetch('/data/2018-09-12-23-12-01-453.zip')
-// .then(res=>res.blob())
-// .then(JSZip.loadAsync)    
-// //.then(zip=>zip.file("Plugin_RIExtender102.log.2018-09-12-23-12-01-453").async("string") )
-// .then(zip=>zip.file(/.*/)[0].async("string") )   // can use regexp to get files
-// .then(pipe(parseLog,text=>console.log("zipped file contents",text)))
-// .catch(e=>console.error(e));
+const main = (sources) => {
 
-const  main = (sources) => {
-
-  const request$ = xs.fromArray(requests);
+  const request$ = xs.fromArray(requests); 
   const responses = map(getResponse(sources))(requests);
 
   const click$ = sources.DOM.select('input').events('click')
@@ -56,7 +43,9 @@ const  main = (sources) => {
     .startWith(true)
   ;
 
-  //let chartDrawn = false;
+  const dropClick$ = sources.EVENT_DROP.startWith(testData[0].data);
+
+  //let chartDrawn = false; 
   const domLayout = ([checked,timeline]) => {
     return (<div>
       <div>
@@ -73,14 +62,17 @@ const  main = (sources) => {
      HTTP: request$
      ,DOM: xs.combine(click$, ...responses).map(domLayout)
      ,EVENT_DROP: xs.combine(...responses).map(([timeline,log,zip])=>timeline)
+     //,DATATABLE: xs.combine(...responses).map(([timeline,log,zip])=>timeline)
+     ,DATATABLE: dropClick$ 
   };
 }
-
-// should probably make a separate chart driver.... output only for moment.
+   
+// should probably make a separate chart driver....  output only for moment. 
 const drivers = {
   DOM: makeDOMDriver('#app')
   ,HTTP: makeHTTPDriver()
   ,EVENT_DROP: makeEventDropDriver({tag:'#events'})
+  ,DATATABLE: makeDataTablesDriver({tag:'#table'})
 };
 
 run(main, drivers);
