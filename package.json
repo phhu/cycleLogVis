@@ -1,5 +1,5 @@
 {
-  "name": "cycleLogViewer",
+  "name": "cyclelogviewer",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -18,6 +18,7 @@
     "@cycle/run": "^5.1.0",
     "adm-zip": "^0.4.11",
     "babel-plugin-transform-react-jsx": "^6.24.1",
+    "d3": "^5.7.0",
     "decompress-response": "^3.3.0",
     "jszip": "^3.1.5",
     "node-zip": "^1.1.1",
