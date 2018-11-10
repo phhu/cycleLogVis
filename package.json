@@ -16,8 +16,13 @@
     "@cycle/dom": "^22.0.0",
     "@cycle/http": "^15.0.0",
     "@cycle/run": "^5.1.0",
+    "adm-zip": "^0.4.11",
     "babel-plugin-transform-react-jsx": "^6.24.1",
+    "decompress-response": "^3.3.0",
+    "jszip": "^3.1.5",
+    "node-zip": "^1.1.1",
     "snabbdom-pragma": "^2.7.0",
+    "unzip": "^0.1.11",
     "xstream": "^11.7.0"
   },
   "devDependencies": {
