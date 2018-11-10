@@ -1,7 +1,9 @@
 import * as d3 from "d3";
 //import eventDrops from 'event-drops';
-import eventDrops from '../../../Documents/GitHub/eventDrops';
+import eventDrops from '../../../Documents/GitHub/eventDrops/dist';
+//import {adapt} from '@cycle/run/lib/adapt';
 
+// see https://cycle.js.org/drivers.html#drivers-how-to-make-drivers. Adapt needed if we return something 
 
 const tooltip = d3
     .select('body')
@@ -77,8 +79,7 @@ const chart = eventDrops({
   },
 });
 
-
-const testData = [ {
+export const testData = [ {
   "name": "Speech Source Measure Export Adapter[RIEXTENDER102]**",
   "data": [
     {
@@ -93,10 +94,21 @@ const testData = [ {
     }
   ]
 }];
-// /*/
-export default ({tag},data) => {
+
+export const updateChart = ({tag}) => data => {
   console.log("dataForChart",data);
-  // console.log("testDataForChart",testData);
   d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
   d3.select(tag).data([data]).call(chart); 
 }
+
+export const makeEventDropDriver = opts => data$ => {
+
+  data$.addListener({
+    next: updateChart(opts),
+    error: console.error,
+    complete: () => {},
+  });
+  
+  return undefined;     // no output
+}
+
