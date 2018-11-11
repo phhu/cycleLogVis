@@ -1,8 +1,8 @@
 import $ from 'jquery' ;
 import dt from 'datatables.net';
 import 'datatables.net-dt/css/jquery.dataTables.css';
-//import {testData} from './eventDropDriver';
 import * as R from 'ramda';
+
 // see https://datatables.net/forums/discussion/32542/datatables-and-webpack
 // some details at https://datatables.net/download/npm
 
@@ -25,12 +25,14 @@ const setupDataTable = ({
   tableId = 'table'
 }={}) => data => {
 
+  // generally best just to redraw the whole table.... 
   try{
-    datatable.destroy();
+    datatable.destroy(true);
   } catch(e){}
   $('#' + tableDivId).html(`<table class="stripe compact" id="${tableId}"><thead></thead></table>`);
   
   const cData = cleanData(data);
+  console.log("Setting up table: data:", data);
   datatable = $('#'+tableId).DataTable({
     data: cData,
     paging: false,
@@ -66,10 +68,8 @@ export const makeDataTablesDriver = opts => data$ => {
     complete: () => {},
   });
   
-  return undefined;     // no output - might do some if 
+  return undefined;     // no output - could add to handle clicks / selections etc
 }
-
-
 
 /*
 		var remakeTable = function(){

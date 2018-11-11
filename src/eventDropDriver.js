@@ -7,6 +7,7 @@ import './style.css';
 // see https://cycle.js.org/drivers.html#drivers-how-to-make-drivers. 
 //Adapt needed if we return something 
 import {adapt} from '@cycle/run/lib/adapt';
+import * as R from 'ramda';
 
 const tooltip = d3
   .select('body')
@@ -15,11 +16,7 @@ const tooltip = d3
   .style('opacity', 0)
   .style('pointer-events', 'auto');
 
-const getAllEvents = d => {
-  const d2 = [].concat(d._allEvents);
-  //delete d2[0]._allEvents;   // delete circular reference
-  return d2;
-} 
+const getAllEvents = R.prop('_allEvents');
   
 // have a look in https://github.com/marmelab/EventDrops/blob/master/src/config.js for examples
 const chart = eventDrops({
@@ -79,13 +76,17 @@ const chart = eventDrops({
   },
 });
 
-var update = data => undefined;    // initial function does nothing - only once stream set up 
+var update = R.F;    // initial function does nothing - only once stream set up 
 
 export const updateChart = ({tag}) => data => {
-  console.log("dataForChart",data);
-  d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
-  d3.select(tag).data([data]).call(chart); 
-}
+  Promise.all(data)    // we might get promises in data... unpromise them here
+    .then(R.unnest)    // flatten any arrays
+    .then(R.tap(x=>console.log("Data for chart:",x)))
+    .then(data => {
+      d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
+      d3.select(tag).data([data]).call(chart); 
+    });
+};
 
 export const makeEventDropDriver = opts => data$ => {
 
@@ -95,14 +96,14 @@ export const makeEventDropDriver = opts => data$ => {
     complete: () => {},
   });
 
-  const incoming$ = xs.create({
-    start: listener => {
-      update = data => listener.next(data)
-    } 
-    ,stop: () => {},
-  });
-
-  return adapt(incoming$);     // no output
+  return adapt( 
+    xs.create({
+      start: listener => {
+        update = data => listener.next(data)
+      } 
+      ,stop: () => {},
+    })
+  );
 }
 
 export const testData = [ {
