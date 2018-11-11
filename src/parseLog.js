@@ -9,11 +9,8 @@ const parser = ({
 } = {}) => (chunk,index) => {   
   const line = chunk.toString();
   const m = re.exec(line)||{input:line};
-  //console.log(index, chunkStr);
-  //console.log(JSON.stringify(m));
-  return ({
+  ret = ({
     ...fixedProps
-    ,line: includeLine ? m.input : undefined
     ,index
     ,weblogicName: m[1]
     ,component: m[2]
@@ -25,6 +22,8 @@ const parser = ({
     ,user : m[7] && m[7].replace(userRe,"$1").trim()
     ,message: m[8] && m[8].trim()
   });
+  if(includeLine) { ret.line = m.input;}
+  return ret;
 }
 
 module.exports = opts => pipe(

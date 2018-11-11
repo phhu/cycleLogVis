@@ -6,7 +6,7 @@ import * as R from 'ramda';
 // see https://datatables.net/forums/discussion/32542/datatables-and-webpack
 // some details at https://datatables.net/download/npm
 
-var datatable;
+let datatable;
 dt.ext.errMode = 'none';
 //dt.ext.errMode = 'throw';
 
