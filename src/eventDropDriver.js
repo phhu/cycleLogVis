@@ -16,15 +16,15 @@ const tooltip = d3
   .style('pointer-events', 'auto');
 
 const getAllEvents = d => {
-  const d2 = d._allEvents;
-  delete d2[0]._allEvents;
+  const d2 = [].concat(d._allEvents);
+  //delete d2[0]._allEvents;   // delete circular reference
   return d2;
 } 
   
 // have a look in https://github.com/marmelab/EventDrops/blob/master/src/config.js for examples
 const chart = eventDrops({
   metaballs: false,
-  //range: {start: new Date(2018,9,18),end: new Date(2018,9,22)},
+  range: {start: new Date(2018,9,18),end: new Date(2018,9,22)},
   drop: {
     date: d => new Date(d.date),
     radius: (data,index) => Math.min(4 + Math.pow(data._allEvents.length,1/2),20),
@@ -37,7 +37,10 @@ const chart = eventDrops({
           data._allEvents.some(e=>e.text === text) ? color :acc 
       ),'black');  
     },
-    onClick: data => update(getAllEvents(data)),
+    onClick: data => {
+      console.log("Clicked drop: data:", data);
+      update(getAllEvents(data));
+    },
     onMouseOver: data => {
       //console.log(data);
       tooltip
@@ -50,36 +53,33 @@ const chart = eventDrops({
           <div class="commit">
           <div class="content">` +
           data._allEvents.map(e => `
-              <h3 class="message">${e.date} - ${e.text}</h3>
+              <div class="message">${e.dateRaw || e.date} - ${e.text || e.message}</div>
           `).join('') +
           `</div>`
         )
-        .style('left', `${d3.event.pageX - 30}px`)
+        .style('left', `${d3.event.pageX - 410}px`)
         .style('top', `${d3.event.pageY + 20}px`);
     },
-    /*onMouseOut: () => {
+    onMouseOut: () => {
       tooltip
         .transition()
         .duration(500)
         .style('opacity', 0)
         .style('pointer-events', 'none');
-    }*/
+    }
   },
   d3,
   label: {
     padding: 20,
-    text: d => `${d.name} (${d.data.length})`,
-    width: 400
+    width: 400,
+    text: d => `${d.name} (${d.data.length})`
   },
   line :{
-    color: (line,index) => {
-      //console.log("line",line); 
-      return /.*\]\*\*$/.test(line.name) ? 'red' : 'blue';
-    }
+    color: (line,index) => (/.*\]\*\*$/.test(line.name) ? 'red' : 'blue')
   },
 });
 
-var update = data => {}    // initial function does nothing - only once stream set up 
+var update = data => undefined;    // initial function does nothing - only once stream set up 
 
 export const updateChart = ({tag}) => data => {
   console.log("dataForChart",data);

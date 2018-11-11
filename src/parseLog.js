@@ -17,8 +17,8 @@ const parser = ({
     ,index
     ,weblogicName: m[1]
     ,component: m[2]
-    ,date: m[3]
-    ,dateParsed: new Date(m[3] && m[3].replace(/,/,"."))
+    ,dateRaw: m[3]
+    ,date: new Date(m[3] && m[3].replace(/,/,"."))
     ,level: m[4]
     ,thread: m[5]
     ,logger : m[6]
