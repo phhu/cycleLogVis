@@ -1,7 +1,10 @@
 import $ from 'jquery' ;
 import dt from 'datatables.net';
+//import * as dtcol from 'dt-colresize';
 import 'datatables.net-dt/css/jquery.dataTables.css';
 import * as R from 'ramda';
+
+//import 'dt-colresize/css/dataTables.colResize.css';
 
 // see https://datatables.net/forums/discussion/32542/datatables-and-webpack
 // some details at https://datatables.net/download/npm
@@ -14,7 +17,14 @@ const getColumnsFromFirstRowOfData = R.pipe(
   R.head,
   R.keys,
   R.reject(k=>k.substr(0,1)==='_'),
-  R.map(key => ({data: key, title:key}) )
+  R.map(key => {
+    const extras = {
+      index: {width:100}
+      ,date: {render: (data,type,row) => `<pre>${data}</pre>`}
+      ,message: {width:'50%'}
+    };
+    return {...extras[key],data: key, title:key};
+  } )
 );
 const addIndexToObj = (o,index)=>({index:index+1,...o});
 const cleanData = d=>d.map(addIndexToObj);
@@ -30,7 +40,7 @@ const setupDataTable = ({
     datatable.destroy(true);
   } catch(e){}
   $('#' + tableDivId).html(`
-    <table class="stripe compact" id="${tableId}">
+    <table style="width:auto;align:left" class="stripe compact" id="${tableId}">
       <thead></thead>
     </table>
   `);
@@ -41,12 +51,12 @@ const setupDataTable = ({
     data: cData
     //,paging: false
     ,search: {regex: true}
+    ,"language": { "search": "Filter table:"}
     ,columns: getColumnsFromFirstRowOfData(cData)
     ,fixedHeader: true
-    //,stateSave: true
+    ,stateSave: true
     ,stateDuration: 0    // 0 means no limit
     ,select: true
-    ,"language": { "search": "Filter table:"}
     ,paging: true
     ,pageLength:200 
     ,pagingType: "full_numbers"
@@ -54,6 +64,9 @@ const setupDataTable = ({
     //,colReorder: true
     ,dom: 'rBfipt'    //B
     ,responsive:true
+    //,colResize: true
+    //,autoWidth: true
+    ,scrollX: false
   });
   datatable.on( 'error.dt', function (e, settings, techNote, message){
     console.error('DataTables error: ', message);

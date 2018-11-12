@@ -12,10 +12,10 @@ const parser = ({
   ret = ({
     ...fixedProps
     ,index
+    ,date: new Date(m[3] && m[3].replace(/,/,"."))
+    ,dateRaw: m[3]
     ,weblogicName: m[1]
     ,component: m[2]
-    ,dateRaw: m[3]
-    ,date: new Date(m[3] && m[3].replace(/,/,"."))
     ,level: m[4]
     ,thread: m[5]
     ,logger : m[6]

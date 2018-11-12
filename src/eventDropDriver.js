@@ -8,6 +8,7 @@ import './style.css';
 //Adapt needed if we return something 
 import {adapt} from '@cycle/run/lib/adapt';
 import * as R from 'ramda';
+import {parse as toDate} from 'date-fns';
 
 const tooltip = d3
   .select('body')
@@ -23,7 +24,7 @@ const chart = eventDrops({
   metaballs: false,
   range: {start: new Date(2018,9,18),end: new Date(2018,9,22)},
   drop: {
-    date: d => new Date(d.dateParsed || d.dateRaw || d.date),
+    date: d => toDate(d.date || d.dateParsed || d.dateRaw),
     radius: (data,index) => Math.min(4 + Math.pow(data._allEvents.length,1/2),20),
     color: (data,index) => {
       const colors = {
@@ -42,8 +43,12 @@ const chart = eventDrops({
       tooltip
         .html(`
           <div class="commit"> 
-          <div class="content">${data._allEvents.length} events:` +
-          data._allEvents.slice(0,25).map(e => `
+          <div class="content">
+          ${data._allEvents.length} events
+          `
+          + (data._allEvents[0].index ? 
+            ` (First index: ${data._allEvents[0].index})`  : '')
+          + data._allEvents.slice(0,25).map(e => `
               <div class="message">
                 <strong>${e.dateRaw || e.date}</strong> 
                 - ${e.text || e.message}
@@ -76,7 +81,6 @@ const chart = eventDrops({
 });
 
 var update = R.F;    // initial function does nothing - only once stream set up 
-
 
 const updateChart = ({tag}) => data => {
   console.log("data for chart",data);

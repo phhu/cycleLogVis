@@ -24,10 +24,13 @@ const requests = [
 ;
 
 //stuff for sorting requests
-const fakeData = {
-  name:"loading...",
-  data:[{date:format(Date(),'YYYY-MM-DD HH:mm:ss.SSS'),text:"loading..."}]
-};
+const fakeData = category => ({
+  name:"loading: "+ category,
+  data:[{
+    date:format(Date(),'YYYY-MM-DD HH:mm:ss.SSS')
+    ,text:"loading: "+ category
+  }]
+});
 const toStreamWithAnyPromisesResolved = x=>xs.fromPromise(Promise.resolve(x));
 const forceIntoArray = d=>[].concat(d);
 const getResponse = sources => ({
@@ -38,11 +41,11 @@ const getResponse = sources => ({
   sources.HTTP
     .select(category)
     .flatten()       // stream of streams....     
-    .map(pipe(...transforms))     // run transforms to get the actual data
-    .map(toStreamWithAnyPromisesResolved)  // resolve annoying promises...
-    .flatten()      // ... and convert the streams returned in doing so.
+    .map(pipe(...transforms))   // run transforms to get the data as json
+    .map(toStreamWithAnyPromisesResolved) 
+    .flatten()     
     .map(forceIntoArray) 
-    .startWith(startWith)
+    .startWith(startWith(category))
 ;
 
 // set and remove fields for table

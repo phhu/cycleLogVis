@@ -20,6 +20,7 @@
     "datatables.net": "^1.10.19",
     "datatables.net-dt": "^1.10.19",
     "date-fns": "^1.29.0",
+    "dt-colresize": "^2.6.0",
     "jquery": "^3.3.1",
     "jszip": "^3.1.5",
     "snabbdom-pragma": "^2.7.0",
