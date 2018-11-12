@@ -1,20 +1,21 @@
 import xs from 'xstream';
+import debounce from 'xstream/extra/debounce';
 import {run} from '@cycle/run';
 import {makeDOMDriver} from '@cycle/dom';
 import {makeHTTPDriver} from '@cycle/http';
 import Snabbdom from 'snabbdom-pragma';
 import {format} from 'date-fns'
 
-import {filter,prop,pipe,path,map,tap,omit,values} from 'ramda';
+import {filter,prop,pipe,path,map,tap,omit,values,unnest} from 'ramda';
 import {makeEventDropDriver,testData} from './eventDropDriver';
 import {makeDataTablesDriver} from './dataTablesDriver';
 
 import {requestMapper} from './requestMapper';
 
 //request definitions
-const requests =[
+const requests = [
   {url: '/data/timeline.json'},
- // {url: '/data/iserver.json'},
+  {url: '/data/iserver.json'},
   {url: '/data/Plugin_BatchExtender102.log'},
   {url: '/data/2018-09-12-23-12-01-453.zip'},
 ]
@@ -25,31 +26,46 @@ const requests =[
 //stuff for sorting requests
 const fakeData = {
   name:"loading...",
-  data:[{date:new Date(),text:"loading..."}]
+  data:[{date:format(Date(),'YYYY-MM-DD HH:mm:ss.SSS'),text:"loading..."}]
 };
-const getResponse = ({sources,filter}) => ({
+const toStreamWithAnyPromisesResolved = x=>xs.fromPromise(Promise.resolve(x));
+const forceIntoArray = d=>[].concat(d);
+const getResponse = sources => ({
   category = 'someRequestUrl'
   ,transforms = prop('text')     // generally we want text, but might also be blob. Can then pipe in others 
-  ,startWith= fakeData
-}= {}) => sources.HTTP
-  .select(category)
-  .flatten()
-  .map(pipe(...transforms))
-  /*.map(d=>[].concat(d))    // force into array
-  .map(tap(x=>console.log("x",x)))    // force into array
-  .filter(rows => rows.filter(row=>(/.*SC.*./.test(row.name))))*/
-  .startWith(startWith);
+  ,startWith = fakeData
+}= {}) => 
+  sources.HTTP
+    .select(category)
+    .flatten()       // stream of streams....     
+    .map(pipe(...transforms))     // run transforms to get the actual data
+    .map(toStreamWithAnyPromisesResolved)  // resolve annoying promises...
+    .flatten()      // ... and convert the streams returned in doing so.
+    .map(forceIntoArray) 
+    .startWith(startWith)
+;
 
-// could do processing of data out of chart in main.... 
+// set and remove fields for table
 const dataTableInputDataMapper = pipe(
   map(d=>{
-    d.date=format(d.date,'YYYY-MM-DD HH:mm:ss.SSS');    //Z would be timezone
+    d.date=format(d.date,'YYYY-MM-DDTHH:mm:ss.SSS');    //Z would be timezone
     return d;
   })
   ,map(omit(['dateRaw','line']))
 ); 
 
+const reTest = (reString, str) => {
+  try {
+    return new RegExp(reString,'i').test(str);
+  } catch(e){
+    console.error("error with reTest: filter regexp probably invalid: ",reString);
+  }
+  return true;
+};
+
 function main (sources){
+
+  //intent
   const domInputs = {
     'checkbox$': sources.DOM
       .select('#checkbox')
@@ -59,30 +75,40 @@ function main (sources){
     ,'filter$': sources.DOM.
       select('#filter')
       .events('keyup')
-      // add throttle
+      .compose(debounce(250))
       .map(path(['target','value']))
-      .startWith("test")
+      .startWith("")
   };
 
-  const request$ = xs.fromArray(requests); 
-  const responses = map(getResponse({sources,filter:'102'}))(requests);
+  const httpRequest$ = xs.fromArray(requests); 
+  const httpResponses = requests.map(getResponse(sources));
+  const httpResponsesFlat$ = xs.combine(...httpResponses).map(unnest); 
 
-  const dropClick$ = sources.EVENT_DROP.startWith([{text:'Click on a blob to view data'}]);
+  const eventDropClick$ = sources.EVENT_DROP
+    .startWith([{date:Date(),text:'Click on a blob to view data'}]);
 
-  const domLayout = ([checked,filter]) => (
+  //view  
+  const domLayout = ([checked,filterText]) => (
     <div>
       <div>
+        {/*
         <input id="checkbox" type="checkbox" checked/> {checked ? 'ON' : 'off'}
-        Filter : <input id="filter" type="text" value={filter}/> {filter}
+        */}
+        <br />Filter chart: <input id="filter" type="text" value={filterText}/>
       </div>
     </div>
   );
-
+  
+  //model 
   return {
-     HTTP: request$
-     ,DOM: xs.combine(...values(domInputs)).map(domLayout)
-     ,EVENT_DROP: xs.combine(...responses)   //.map(([timeline,log,zip])=>[timeline,log,zip])
-     ,DATATABLE: dropClick$.map(dataTableInputDataMapper)
+    HTTP: httpRequest$
+    ,DOM: xs.combine(...values(domInputs)).map(domLayout)
+    ,EVENT_DROP: xs.combine(domInputs.filter$,httpResponsesFlat$)
+      .map(([filterText,data]) => 
+        data.filter(r=>reTest(filterText,r.name))
+        //could also do a filter by value here
+      ) 
+    ,DATATABLE: eventDropClick$.map(dataTableInputDataMapper)
   };
 }
    

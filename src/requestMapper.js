@@ -1,21 +1,26 @@
 // this fills a request object with properties, generally based on url
 
+import xs from 'xstream';
 import {pipe,omit,prop,map,ifElse,identity,has} from 'ramda';
 const parseLog = require('./parseLog')({includeLine:false});
 const getZip = require('./getZip');
-const getJson = pipe(prop('text'),JSON.parse);
 
-
-const logToData = name => data => ({name,data});
+const isInNameDataFormat = d => (
+  d[0] && Object.keys(d[0]).length == 2 && 
+  d[0].name && d[0].data
+);
+export const logToData = name => data => 
+  isInNameDataFormat(data) ? data : {name,data};
 //const tapText = pipe(tap(x=>console.log(x)),prop('text'))
 
 //depending on the ending of the URL, get additional properties for request
-//depending on the ending of the URL, get additional properties for request
+// should prop use a regexp here?
 const requestPropsByType = {
   'json': req => ({
     transforms: [
-      getJson
-      //,ifElse(d=>(d && d[0] && d[0].name &&d[0].data),identity,logToData(req.url))
+      prop('text'),
+      JSON.parse,
+      logToData(req.url),
     ]
   }),
   'log': req => ({
@@ -23,7 +28,7 @@ const requestPropsByType = {
       prop('text'),
       parseLog,
       map(omit(['thread','weblogicName','logger'])),
-      logToData(req.url)
+      logToData(req.url),
     ]
   }),
   'zip': req => ({
@@ -32,8 +37,8 @@ const requestPropsByType = {
       prop('body'),
       getZip({transform:pipe(
         parseLog,
-        logToData(req.url)
-      )})
+        logToData(req.url),
+      )}),       // returns a promise
     ] 
   })
 };

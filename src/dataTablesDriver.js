@@ -10,7 +10,7 @@ let datatable;
 dt.ext.errMode = 'none';
 //dt.ext.errMode = 'throw';
 
-const getColumns = R.pipe(
+const getColumnsFromFirstRowOfData = R.pipe(
   R.head,
   R.keys,
   R.reject(k=>k.substr(0,1)==='_'),
@@ -29,15 +29,31 @@ const setupDataTable = ({
   try{
     datatable.destroy(true);
   } catch(e){}
-  $('#' + tableDivId).html(`<table class="stripe compact" id="${tableId}"><thead></thead></table>`);
+  $('#' + tableDivId).html(`
+    <table class="stripe compact" id="${tableId}">
+      <thead></thead>
+    </table>
+  `);
   
   const cData = cleanData(data);
   console.log("Setting up table: data:", data);
   datatable = $('#'+tableId).DataTable({
-    data: cData,
-    paging: false,
-    search: {regex: true},
-    columns: getColumns(cData)
+    data: cData
+    //,paging: false
+    ,search: {regex: true}
+    ,columns: getColumnsFromFirstRowOfData(cData)
+    ,fixedHeader: true
+    //,stateSave: true
+    ,stateDuration: 0    // 0 means no limit
+    ,select: true
+    ,"language": { "search": "Filter table:"}
+    ,paging: true
+    ,pageLength:200 
+    ,pagingType: "full_numbers"
+    //,scrollY: 400
+    //,colReorder: true
+    ,dom: 'rBfipt'    //B
+    ,responsive:true
   });
   datatable.on( 'error.dt', function (e, settings, techNote, message){
     console.error('DataTables error: ', message);
@@ -50,11 +66,6 @@ const updateTable = opts => data => {
   datatable.draw();
 };
 
-const remakeTable = opts => data => {
-  try{datatable.destroy();}catch(e){}
-  $('#tablediv').html('<table class="stripe compact" id="table"><thead></thead></table>');
-  setupDataTable(opts)(data);
-}
 */
 export const makeDataTablesDriver = opts => data$ => {
 
@@ -70,53 +81,3 @@ export const makeDataTablesDriver = opts => data$ => {
   
   return undefined;     // no output - could add to handle clicks / selections etc
 }
-
-/*
-		var remakeTable = function(){
-			try{
-				table.destroy(true);
-			} catch (e){
-				//console.log("no table to destroy",e);
-			}
-			console.log("remaking table");
-			$.fn.dataTable.ext.errMode = 'none';
-			
-			var myIndex = indexVal();
-			getIndexFields(myIndex).then(function(indexFields){
-			
-				var opts = datatableOptions({
-					index:myIndex
-					,indexFields:indexFields
-				});
-				
-			
-				
-				//console.log("opts",JSON.stringify(opts,null,2));
-				//destroy rips out the original table, so (re)create it 
-				$('#tablediv').html('<table class="stripe compact" id="table"><thead></thead></table>');
-				table = $('#table')
-					.on( 'error.dt', function (e, settings, techNote, message){
-						console.error('DataTables error: ', message);
-					})
-					.on( 'column-visibility.dt', function ( e, settings, column, state ) {
-						// see https://datatables.net/reference/event/column-visibility - to preserve column visibilty settings
-						try{
-							var c = columnSet[indexVal()][column];
-							c.visible = c.bVisible = state;
-						} catch(e){
-							console.error("error recording column visibility", e);
-						}
-					})
-					.DataTable(opts)
-				;
-
-				table.on('init',function(){
-					console.log("init");
-					table.on('draw',drawFunc);
-					table.draw();
-					q.focus();
-				});					
-			});
-		};
-    
-  */

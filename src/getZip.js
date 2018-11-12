@@ -1,27 +1,20 @@
+// JSzipcan unzip a file in memory without filesystem -- 
 const JSZip = require("jszip");
-const {pipe,map,identity} = require( 'ramda');
+const {pipe,map,identity,tap} = require( 'ramda');
 
 //  - see https://stuk.github.io/jszip/documentation/api_jszip/file_regex.html
 module.exports = ({
   transform = identity
 } = {}) => zippedData => 
-  JSZip.loadAsync(zippedData)   
+  JSZip.loadAsync(zippedData)   // have zipped data, unzip it
     .then(pipe(
-      zip => zip.file(/.+/)    // can use regexp to get all files
-      ,map(zip=>zip
-        .async("string")
-        .then(transform)
+      zip => zip.file(/.+/)    // use regexp to get all files in zip
+      ,map(zip=>zip            // for each file 
+        .async("string")       //  - get the body of the file
+        .then(transform)       //  - transform the body
       )
-      ,x=>Promise.all(x)
+      ,x=>Promise.all(x)       // return promise of all 
+      //.then(console.log)
     ))   
-    //.then(console.log)
     .catch(console.error);
-
-// can unzip a file in memory without filesystem -- see https://stuk.github.io/jszip/documentation/api_jszip/file_regex.html
-// fetch('/data/2018-09-12-23-12-01-453.zip')
-// .then(res=>res.blob())
-// .then(JSZip.loadAsync)    
-// //.then(zip=>zip.file("Plugin_RIExtender102.log.2018-09-12-23-12-01-453").async("string") )
-// .then(zip=>zip.file(/.*/)[0].async("string") )   // can use regexp to get files
-// .then(pipe(parseLog,text=>console.log("zipped file contents",text)))
-// .catch(e=>console.error(e));
+      

@@ -23,7 +23,7 @@ const chart = eventDrops({
   metaballs: false,
   range: {start: new Date(2018,9,18),end: new Date(2018,9,22)},
   drop: {
-    date: d => new Date(d.date),
+    date: d => new Date(d.dateParsed || d.dateRaw || d.date),
     radius: (data,index) => Math.min(4 + Math.pow(data._allEvents.length,1/2),20),
     color: (data,index) => {
       const colors = {
@@ -38,32 +38,31 @@ const chart = eventDrops({
       console.log("Clicked drop: data:", data);
       update(getAllEvents(data));
     },
-    onMouseOver: data => {
-      //console.log(data);
-      tooltip
-        .transition()
-        .duration(100)
-        .style('opacity', 1)
-        .style('pointer-events', 'auto');
+    onMouseOver: data =>
       tooltip
         .html(`
-          <div class="commit">
-          <div class="content">` +
-          data._allEvents.map(e => `
-              <div class="message">${e.dateRaw || e.date} - ${e.text || e.message}</div>
+          <div class="commit"> 
+          <div class="content">${data._allEvents.length} events:` +
+          data._allEvents.slice(0,25).map(e => `
+              <div class="message">
+                <strong>${e.dateRaw || e.date}</strong> 
+                - ${e.text || e.message}
+                </div>
           `).join('') +
           `</div>`
         )
         .style('left', `${d3.event.pageX - 410}px`)
-        .style('top', `${d3.event.pageY + 20}px`);
-    },
-    onMouseOut: () => {
+        .style('top', `${d3.event.pageY + 20}px`)
+        .transition()
+        .duration(100)
+        .style('opacity', 1)
+        .style('pointer-events', 'auto'),
+    onMouseOut: () => 
       tooltip
         .transition()
-        .duration(500)
+        .duration(100)
         .style('opacity', 0)
-        .style('pointer-events', 'none');
-    }
+        .style('pointer-events', 'none')
   },
   d3,
   label: {
@@ -78,15 +77,12 @@ const chart = eventDrops({
 
 var update = R.F;    // initial function does nothing - only once stream set up 
 
-export const updateChart = ({tag}) => data => {
-  Promise.all(data)    // we might get promises in data... unpromise them here
-    .then(R.unnest)    // flatten any arrays
-    .then(R.tap(x=>console.log("Data for chart:",x)))
-    .then(data => {
-      d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
-      d3.select(tag).data([data]).call(chart); 
-    });
-};
+
+const updateChart = ({tag}) => data => {
+  console.log("data for chart",data);
+  d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
+  d3.select(tag).data([data]).call(chart); 
+}
 
 export const makeEventDropDriver = opts => data$ => {
 
