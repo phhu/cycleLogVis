@@ -4,24 +4,72 @@ import {run} from '@cycle/run';
 import {makeDOMDriver} from '@cycle/dom';
 import {makeHTTPDriver} from '@cycle/http';
 import Snabbdom from 'snabbdom-pragma';
-import {format} from 'date-fns'
 
-import {filter,prop,pipe,path,map,tap,omit,values,unnest} from 'ramda';
+import {format} from 'date-fns'
+import {prop,pipe,path,map,tap,omit,values,
+  unnest,partition,test,assoc,concat} from 'ramda';
+
 import {makeEventDropDriver,testData} from './eventDropDriver';
 import {makeDataTablesDriver} from './dataTablesDriver';
-
 import {requestMapper} from './requestMapper';
 
 //request definitions
+// need to make a server that returns the files.... 
+// just chuck the folder in dist for the moment? 
+// logs folder, and software/ fusion exchange
+// - how to handle multiple servers? 
+// should be poss to specify which files to get in UI
+// maybe allow ticking of defaults etc
+// need autodetect of parser to use 
+
+// - how to combine files into one row? 
+// -  - request the folder, get all files within, recursive, with regexp filter
+
+const ISLOGS = '/logs/Integration%20Server';
+const FE = '/software/FusionExchange';
 const requests = [
-  {url: '/data/timeline.json'},
-  {url: '/data/iserver.json'},
-  {url: '/data/Plugin_BatchExtender102.log'},
-  {url: '/data/2018-09-12-23-12-01-453.zip'},
-]
+  //{url: '/data/timeline.json'},
+  {url: `${ISLOGS}/IServer.log`},
+  {url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-04-58-02-789.zip`},
+  {url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-12-10-02-613.zip`},
+  {url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-19-28-03-159.zip`},
+  {url: `${ISLOGS}/Plugin_RIExtender102.log`},
+  {url: `${ISLOGS}/Plugin_RIExtender102/2018-09-12/2018-09-12-23-12-01-453.zip`},
+  //{url: `${ISLOGS}/IServer/2018-10-24/`},
+  {url: `${FE}/BPX-Server.xml`}, // would be good to filter this?    
+  {url: `${FE}/Plugins/Speech/Logs/SpeechSourceMeasureProvider.log`},
+  //{url: '/data/Plugin_BatchExtender102.log'},
+  //{url: '/data/2018-09-12-23-12-01-453.zip'},
+] 
 .map(requestMapper)
 .map(tap(x=>console.log("req",x)))
 ;
+
+const requestGroups = [
+  {name:'iserver.log',re: /iserver/i}
+  ,{name:'Plugin_RIExtender102.log',re: /Plugin_RIExtender102/i}
+];
+const combineByGroup = groups => data => 
+  concat(...groups.reduce (
+    ([processed,source],group) => {
+      const [matching, remaining] = partition(
+        pipe(prop('name'),test(group.re))
+        ,source
+      );
+      processed.push ({
+        name:group.name
+        ,data: pipe(
+          map(r=> pipe(
+            prop('data')
+            ,map(assoc('sourceFile', prop('name')(r)))
+          )(r))
+          ,unnest 
+        )(matching)
+      });
+      return [processed,remaining];           
+    }
+    ,[[],data]
+  ));
 
 //stuff for sorting requests
 const fakeData = category => ({
@@ -31,7 +79,8 @@ const fakeData = category => ({
     ,text:"loading: "+ category
   }]
 });
-const toStreamWithAnyPromisesResolved = x=>xs.fromPromise(Promise.resolve(x));
+const toStreamWithAnyPromisesResolved = x =>
+  xs.fromPromise(Promise.resolve(x));
 const forceIntoArray = d=>[].concat(d);
 const getResponse = sources => ({
   category = 'someRequestUrl'
@@ -48,7 +97,7 @@ const getResponse = sources => ({
     .startWith(startWith(category))
 ;
 
-// set and remove fields for table
+// processing of data before it goes to table
 const dataTableInputDataMapper = pipe(
   map(d=>{
     d.date=format(d.date,'YYYY-MM-DDTHH:mm:ss.SSS');    //Z would be timezone
@@ -57,13 +106,16 @@ const dataTableInputDataMapper = pipe(
   ,map(omit(['dateRaw','line']))
 ); 
 
-const reTest = (reString, str) => {
+const stringMatchesRegExp = (reString, str) => {
   try {
     return new RegExp(reString,'i').test(str);
   } catch(e){
-    console.error("error with reTest: filter regexp probably invalid: ",reString);
+    console.error(
+      "error with stringMatchesRegExp: filter regexp probably invalid: "
+      ,reString
+    );
   }
-  return true;
+  return true; // pass everything
 };
 
 function main (sources){
@@ -81,14 +133,17 @@ function main (sources){
       .compose(debounce(250))
       .map(path(['target','value']))
       .startWith("")
-  };
+    };
 
   const httpRequest$ = xs.fromArray(requests); 
   const httpResponses = requests.map(getResponse(sources));
-  const httpResponsesFlat$ = xs.combine(...httpResponses).map(unnest); 
+  const httpResponsesFlat$ = xs.combine(...httpResponses)
+    .map(unnest)
+    .map(combineByGroup(requestGroups))
+  ; 
 
   const eventDropClick$ = sources.EVENT_DROP
-    .startWith([{date:Date(),text:'Click on a blob to view data'}]);
+  .startWith([{date:Date(),text:'Click on a blob to view data'}]);
 
   //view  
   const domLayout = ([checked,filterText]) => (
@@ -97,7 +152,7 @@ function main (sources){
         {/*
         <input id="checkbox" type="checkbox" checked/> {checked ? 'ON' : 'off'}
         */}
-        <br />Filter chart: <input id="filter" type="text" value={filterText}/>
+        <br /><input placeholder="filter chart (regexp)" id="filter" type="text" value={filterText} style="width:100%"/>
       </div>
     </div>
   );
@@ -108,7 +163,7 @@ function main (sources){
     ,DOM: xs.combine(...values(domInputs)).map(domLayout)
     ,EVENT_DROP: xs.combine(domInputs.filter$,httpResponsesFlat$)
       .map(([filterText,data]) => 
-        data.filter(r=>reTest(filterText,r.name))
+        data.filter(r=>stringMatchesRegExp(filterText,r.name))
         //could also do a filter by value here
       ) 
     ,DATATABLE: eventDropClick$.map(dataTableInputDataMapper)

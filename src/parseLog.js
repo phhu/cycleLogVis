@@ -12,7 +12,10 @@ const parser = ({
   ret = ({
     ...fixedProps
     ,index
-    ,date: new Date(m[3] && m[3].replace(/,/,"."))
+    ,date: new Date(m[3] && m[3]
+      .replace(/,/,".")                             // decimal as point
+      .replace(/(^[^\s]+\s[^\s]+)(\s.*)?$/,"$1")    // throw away time zone
+    )
     ,dateRaw: m[3]
     ,weblogicName: m[1]
     ,component: m[2]

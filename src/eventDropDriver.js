@@ -22,7 +22,7 @@ const getAllEvents = R.prop('_allEvents');
 // have a look in https://github.com/marmelab/EventDrops/blob/master/src/config.js for examples
 const chart = eventDrops({
   metaballs: false,
-  range: {start: new Date(2018,9,18),end: new Date(2018,9,22)},
+  range: {start: new Date(2018,9,10),end: new Date(2018,9,30)},
   drop: {
     date: d => toDate(d.date || d.dateParsed || d.dateRaw),
     radius: (data,index) => Math.min(4 + Math.pow(data._allEvents.length,1/2),20),
@@ -31,12 +31,15 @@ const chart = eventDrops({
         'COMPLETED': 'green',
         'FAILED' : 'red'
       }; 
-      return Object.entries(colors).reduce((acc,[text,color])=>(
-          data._allEvents.some(e=>e.text === text) ? color :acc 
+      // should use a regexp test here?
+      return Object.entries(colors).reduce((acc,[keyword,color])=>(
+          data._allEvents.some(e=>(e.text === keyword || e.message === keyword )) ? color :acc 
       ),'black');  
     },
-    onClick: data => {
-      console.log("Clicked drop: data:", data);
+    onClick: function (data,index) {
+      console.log("Clicked drop:" ,index , this, "data:", data);
+      //data.lastClicked = true;
+      //d3.select(this).attr('fill','yellow');
       update(getAllEvents(data));
     },
     onMouseOver: data =>
@@ -86,16 +89,14 @@ const updateChart = ({tag}) => data => {
   console.log("data for chart",data);
   d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
   d3.select(tag).data([data]).call(chart); 
-}
+};
 
 export const makeEventDropDriver = opts => data$ => {
-
   data$.addListener({
     next: updateChart(opts),
     error: console.error,
     complete: () => {},
   });
-
   return adapt( 
     xs.create({
       start: listener => {
@@ -106,6 +107,7 @@ export const makeEventDropDriver = opts => data$ => {
   );
 }
 
+//  a test data set 
 export const testData = [ {
   "name": "Speech Source Measure Export Adapter[RIEXTENDER102]**",
   "data": [

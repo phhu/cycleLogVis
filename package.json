@@ -23,7 +23,9 @@
     "dt-colresize": "^2.6.0",
     "jquery": "^3.3.1",
     "jszip": "^3.1.5",
+    "moment": "^2.22.2",
     "snabbdom-pragma": "^2.7.0",
+    "xml2js": "^0.4.19",
     "xstream": "^11.7.0"
   },
   "devDependencies": {
