@@ -31,15 +31,15 @@ const ISLOGS = '/logs/Integration%20Server';
 const FE = '/software/FusionExchange';
 const requests = [
   //{url: '/data/timeline.json'},
-  {url: `${ISLOGS}/IServer.log`},
   {url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-04-58-02-789.zip`},
-  {url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-12-10-02-613.zip`},
-  {url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-19-28-03-159.zip`},
+  //{url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-12-10-02-613.zip`},
+  //{url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-19-28-03-159.zip`},
+  //{url: `${ISLOGS}/IServer.log`},
   {url: `${ISLOGS}/Plugin_RIExtender102.log`},
-  {url: `${ISLOGS}/Plugin_RIExtender102/2018-09-12/2018-09-12-23-12-01-453.zip`},
+  //{url: `${ISLOGS}/Plugin_RIExtender102/2018-09-12/2018-09-12-23-12-01-453.zip`},
   //{url: `${ISLOGS}/IServer/2018-10-24/`},
   {url: `${FE}/BPX-Server.xml`}, // would be good to filter this?    
-  //{url: `${FE}/Plugins/Speech/Logs/SpeechSourceMeasureProvider.log`},
+  {url: `${FE}/Plugins/Speech/Logs/SpeechSourceMeasureProvider.log`},
   //{url: '/data/Plugin_BatchExtender102.log'},
   //{url: '/data/2018-09-12-23-12-01-453.zip'},
 ] 
@@ -58,16 +58,18 @@ const combineByGroup = groups => data =>
         pipe(prop('name'),test(group.re))
         ,source
       );
-      processed.push ({
-        name:group.name
-        ,data: pipe(
-          map(r=> pipe(
-            prop('data')
-            ,map(assoc('sourceFile', prop('name')(r)))
-          )(r))
-          ,unnest 
-        )(matching)
-      });
+      if (matching.length>0){
+        processed.push ({
+          name:group.name
+          ,data: pipe(
+            map(r=> pipe(
+              prop('data')
+              ,map(assoc('sourceFile', prop('name')(r)))
+            )(r))
+            ,unnest 
+          )(matching)
+        });
+      }
       return [processed,remaining];           
     }
     ,[[],data]

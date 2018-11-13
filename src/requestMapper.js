@@ -1,7 +1,8 @@
 // this fills a request object with properties, generally based on url
 
-import {always,pipe,omit,prop,map,find} from 'ramda';
+import {always,pipe,omit,prop,map,find,tap,split} from 'ramda';
 const parseLog = require('./parseLog')({includeLine:false});
+const parseSpeechLog = require('./parseSpeechLog')({includeLine:false});
 const {bpxServerXmlToTimeline} = require('./parseBPXserverXML');
 const getZip = require('./getZip');
 
@@ -26,16 +27,21 @@ const requestPropsByType = [
       ]
     })
   },
-  /*{ 
+  { 
     re:'SpeechSourceMeasureProvider\\.log$',
     props: req => ({
       transforms:[
-        prop('text'),
-        ,map(text=>[{text:text}])
+        prop('text')
+        ,parseSpeechLog
+        //,always('blah blah blah ')
+        //,split(/---\r\n/g)
+        //,map(text=>'fake')
+        ,tap(x=>console.log("speech source text",x[1]))
+        //,map(data=>({text:data}))
         ,logToData(req.url),
       ]
     })
-  },*/
+  },
   { 
     re:'\\.log(\\.\d+)?$',
     props: req => ({
