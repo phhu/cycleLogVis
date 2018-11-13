@@ -13,6 +13,8 @@ import {makeEventDropDriver,testData} from './eventDropDriver';
 import {makeDataTablesDriver} from './dataTablesDriver';
 import {requestMapper} from './requestMapper';
 
+const filterByString = require('./regExpFilter')({textFn:prop('name'),reBuilder:'or'});
+
 //request definitions
 // need to make a server that returns the files.... 
 // just chuck the folder in dist for the moment? 
@@ -157,15 +159,14 @@ function main (sources){
     </div>
   );
   
+
   //model 
   return {
     HTTP: httpRequest$
     ,DOM: xs.combine(...values(domInputs)).map(domLayout)
-    ,EVENT_DROP: xs.combine(domInputs.filter$,httpResponsesFlat$)
-      .map(([filterText,data]) => 
-        data.filter(r=>stringMatchesRegExp(filterText,r.name))
-        //could also do a filter by value here
-      ) 
+    ,EVENT_DROP: xs.combine(httpResponsesFlat$,domInputs.filter$)
+      .map(args => filterByString(...args)) 
+      //could also do a filter by value here
     ,DATATABLE: eventDropClick$.map(dataTableInputDataMapper)
   };
 }

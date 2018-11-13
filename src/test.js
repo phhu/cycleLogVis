@@ -1,6 +1,6 @@
-const {compose,prop,pipe,path,map,tap,omit,values,find,
-  defaultTo,unnest,partition,test,assoc,concat,always,__} = require( 'ramda');
-
+const {filter,trim,split,identity,toPairs,reduce,compose,prop,pipe,path,map,tap,omit,values,find,
+  defaultTo,unnest,partition,test,assoc,concat,always,__,groupBy} = require( 'ramda');
+/*
 const requestGroups = [
   {name:'iserver.log',re: /iserver/i}
   ,{name:'Plugin_RIExtender102.log',re: /Plugin_RIExtender102/i}
@@ -33,3 +33,32 @@ const grouper = groups => pipe(
   
   const test2 = grouper(requestGroups)(fakeData[2]);
   console.log(test2);
+
+
+const ns = [1,2,3,4,5];
+const r = groupBy(x=>x>1 ? true:undefined,ns);
+const {undefined:undef,...rest} = r;
+//const r.groupBy
+console.log(undef, rest);
+const joined = reduce(
+  (acc,[name,data])=>{
+    acc.push({name,data:data.join('')});
+    return acc;
+  } 
+  ,[]
+  ,toPairs(rest)
+);
+
+console.log(r);
+console.log(joined);
+*/
+
+
+const filterByString = require('./regExpFilter');
+
+const data = ['a bb','b a','c bb'];
+const filterer = filterByString({},data);
+console.log(
+  filterer('a b{2}')
+  // filterer('a b{2}')
+)
