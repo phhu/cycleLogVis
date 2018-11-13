@@ -7,7 +7,7 @@ import Snabbdom from 'snabbdom-pragma';
 
 import {format} from 'date-fns'
 import {prop,pipe,path,map,tap,omit,values,
-  unnest,partition,test,assoc,concat} from 'ramda';
+  unnest,partition,test,assoc,concat,filter} from 'ramda';
 
 import {makeEventDropDriver,testData} from './eventDropDriver';
 import {makeDataTablesDriver} from './dataTablesDriver';
@@ -39,7 +39,7 @@ const requests = [
   {url: `${ISLOGS}/Plugin_RIExtender102/2018-09-12/2018-09-12-23-12-01-453.zip`},
   //{url: `${ISLOGS}/IServer/2018-10-24/`},
   {url: `${FE}/BPX-Server.xml`}, // would be good to filter this?    
-  {url: `${FE}/Plugins/Speech/Logs/SpeechSourceMeasureProvider.log`},
+  //{url: `${FE}/Plugins/Speech/Logs/SpeechSourceMeasureProvider.log`},
   //{url: '/data/Plugin_BatchExtender102.log'},
   //{url: '/data/2018-09-12-23-12-01-453.zip'},
 ] 
@@ -164,8 +164,9 @@ function main (sources){
   return {
     HTTP: httpRequest$
     ,DOM: xs.combine(...values(domInputs)).map(domLayout)
-    ,EVENT_DROP: xs.combine(httpResponsesFlat$,domInputs.filter$)
-      .map(args => filterByString(...args)) 
+    ,EVENT_DROP: xs.combine(domInputs.filter$,httpResponsesFlat$)
+      .map(tap(x=>console.log("eventDrops",x)))
+      .map(args => filterByString(...args) )
       //could also do a filter by value here
     ,DATATABLE: eventDropClick$.map(dataTableInputDataMapper)
   };

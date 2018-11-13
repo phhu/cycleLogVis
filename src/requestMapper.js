@@ -26,6 +26,16 @@ const requestPropsByType = [
       ]
     })
   },
+  /*{ 
+    re:'SpeechSourceMeasureProvider\\.log$',
+    props: req => ({
+      transforms:[
+        prop('text'),
+        ,map(text=>[{text:text}])
+        ,logToData(req.url),
+      ]
+    })
+  },*/
   { 
     re:'\\.log(\\.\d+)?$',
     props: req => ({

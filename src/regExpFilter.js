@@ -14,7 +14,6 @@ const reBuilders = {
     ,join('|')
     ,x=>`(${x})`
   )
-
 }
 
 const getBuilder = builder => 
@@ -27,29 +26,27 @@ const filterByString = curryN(3,
     textFn=identity
     ,defaultFn=identity
     ,reBuilder='or'
-  }={},data, searchString) => {
+  }={}, searchString, data) => {
     /*console.log("re",{
       searchString,
       data, 
-      reStr:reFromSearchString(searchString),
-      text: textFn(data),
+      reStr:getBuilder(reBuilder)(searchString),
+      text: textFn(data[0]),
     });*/
+    let fitlerer; 
     try{
-      const res = filter(
-        pipe(
-          textFn
-          ,test(new RegExp(
-            getBuilder(reBuilder)(searchString)
-            ,'i'
-          ))
-        )
-        ,data
-      );
-      return res;
+      filterer = pipe(
+        textFn
+        ,test(new RegExp(
+          getBuilder(reBuilder)(searchString)
+          ,'i'
+        ))
+      )
     } catch (err){
       //console.error(err);
-      return defaultFn(data);
+      filterer = defaultFn;
     }
+    return filter(filterer,data);
   }
 );
 
