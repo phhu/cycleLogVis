@@ -54,7 +54,7 @@ console.log(joined);
 */
 
 
-const filterByString = require('./regExpFilter');
+const filterByString = require('./utils/regExpFilter');
 
 const data = ['a bb','b a','c bb'];
 const filterer = filterByString({},data);

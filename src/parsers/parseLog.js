@@ -1,7 +1,7 @@
 const {pipe,split,map,tail,addIndex} = require('ramda');
 
 const re = /^\[([^\]]*)\]-\[([^\]]*)\] \[([^\]]*)\] \[([^\]]*)\] \[(?:\[[A-Z]*\] )?([^\]]*)\] \[([^\]]*)\] \<##(.*)##\> - ([\s\S]*)$/mi;   
-const userRe = /\[\{user=\<?(.*)\>?\}\]/;
+const userRe = /\[\{user=(.*)\}\]/;
 
 const parser = ({
   fixedProps = {}

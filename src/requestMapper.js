@@ -1,10 +1,10 @@
 // this fills a request object with properties, generally based on url
 
 import {always,pipe,omit,prop,map,find,tap,split} from 'ramda';
-const parseLog = require('./parseLog')({includeLine:false});
-const parseSpeechLog = require('./parseSpeechLog')({includeLine:false});
-const {bpxServerXmlToTimeline} = require('./parseBPXserverXML');
-const getZip = require('./getZip');
+const parseLog = require('./parsers/parseLog')({includeLine:false});
+const parseSpeechLog = require('./parsers/parseSpeechLog')({includeLine:false});
+const {bpxServerXmlToTimeline} = require('./parsers/parseBPXserverXML');
+const getZip = require('./utils/getZip');
 
 const isInNameDataFormat = d => (
   d[0] && Object.keys(d[0]).length == 2 && 
@@ -36,7 +36,7 @@ const requestPropsByType = [
         //,always('blah blah blah ')
         //,split(/---\r\n/g)
         //,map(text=>'fake')
-        ,tap(x=>console.log("speech source text",x[1]))
+        //,tap(x=>console.log("speech source text",x[1]))
         //,map(data=>({text:data}))
         ,logToData(req.url),
       ]
@@ -116,8 +116,8 @@ const requestPropsByType = [
 ];
 
 const stringMatchesRegExp = (reString, str) => {
-  const res = new RegExp(reString,'i').test(str)
-  console.log("testing",reString,str,res);
+  const res = new RegExp(reString,'i').test(str);
+  //console.log("testing",reString,str,res);
   return res;
 }
 const getExtensionFromUrl = url => url.replace(/^.*?\.(.*?)(\.[0-9]+)?$/,"$1");

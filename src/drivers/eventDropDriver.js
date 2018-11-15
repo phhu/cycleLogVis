@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 //import eventDrops from 'event-drops';
-import eventDrops from '../../../Documents/GitHub/eventDrops/dist';
+import eventDrops from '../../../../Documents/GitHub/eventDrops/dist';
 import xs from 'xstream';
 import './style.css';
 

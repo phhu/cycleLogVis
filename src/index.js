@@ -3,17 +3,19 @@ import debounce from 'xstream/extra/debounce';
 import {run} from '@cycle/run';
 import {makeDOMDriver} from '@cycle/dom';
 import {makeHTTPDriver} from '@cycle/http';
+import {makeHistoryDriver} from '@cycle/history';
 import Snabbdom from 'snabbdom-pragma';
 
 import {format} from 'date-fns'
-import {prop,pipe,path,map,tap,omit,values,
-  unnest,partition,test,assoc,concat,filter} from 'ramda';
+import {prop,pipe,path,map,tap,omit,values,is,ifElse,identity,join,split
+  ,unnest,partition,test,assoc,concat,filter} from 'ramda';
 
-import {makeEventDropDriver,testData} from './eventDropDriver';
-import {makeDataTablesDriver} from './dataTablesDriver';
+import {makeEventDropDriver,testData} from './drivers/eventDropDriver';
+import {makeDataTablesDriver} from './drivers/dataTablesDriver';
 import {requestMapper} from './requestMapper';
+const qs = require('qs');
 
-const filterByString = require('./regExpFilter')({textFn:prop('name'),reBuilder:'or'});
+const filterByString = require('./utils/regExpFilter')({textFn:prop('name'),reBuilder:'or'});
 
 //request definitions
 // need to make a server that returns the files.... 
@@ -110,6 +112,7 @@ const dataTableInputDataMapper = pipe(
   ,map(omit(['dateRaw','line']))
 ); 
 
+/*
 const stringMatchesRegExp = (reString, str) => {
   try {
     return new RegExp(reString,'i').test(str);
@@ -121,9 +124,25 @@ const stringMatchesRegExp = (reString, str) => {
   }
   return true; // pass everything
 };
+*/
 
-function main (sources){
+const getInitialSettings = pipe(
+  x=>qs.parse(x,{ ignoreQueryPrefix: true })
+  ,map(
+    ifElse(is(Array),join(' '),identity)
+  )
+);
+const initialSettings = getInitialSettings(window.location.search);
 
+const  main = ({initialSettings}) => sources => {
+
+  const history$ = sources.history
+    .debug("incomingHistory")
+
+    //.take(1)
+    //.map(e=>getInitialSettings(e.query))
+    //.map(settings => {initialSettings = settings});
+  ;
   //intent
   const domInputs = {
     'checkbox$': sources.DOM
@@ -134,14 +153,14 @@ function main (sources){
     ,'filter$': sources.DOM.
       select('#filter')
       .events('keyup')
-      .compose(debounce(250))
+      .compose(debounce(500))
       .map(path(['target','value']))
-      .startWith("")
+      .startWith(initialSettings['filter'] || '')     //impure - 
     };
 
   const httpRequest$ = xs.fromArray(requests); 
   const httpResponses = requests.map(getResponse(sources));
-  const httpResponsesFlat$ = xs.combine(...httpResponses)
+  const chartData$ = xs.combine(...httpResponses)
     .map(unnest)
     .map(combineByGroup(requestGroups))
   ; 
@@ -160,17 +179,19 @@ function main (sources){
       </div>
     </div>
   );
-  
 
   //model 
   return {
     HTTP: httpRequest$
     ,DOM: xs.combine(...values(domInputs)).map(domLayout)
-    ,EVENT_DROP: xs.combine(domInputs.filter$,httpResponsesFlat$)
-      .map(tap(x=>console.log("eventDrops",x)))
-      .map(args => filterByString(...args) )
+    ,EVENT_DROP: xs.combine(domInputs.filter$,chartData$)
+      .map(([filter,data]) => filterByString(filter,data) )
+      .debug("chartDataFiltered")
       //could also do a filter by value here
     ,DATATABLE: eventDropClick$.map(dataTableInputDataMapper)
+    ,history: domInputs.filter$
+      .compose(debounce(2000))
+      .map(filter=>qs.stringify({filter}, {format:'RFC1738',addQueryPrefix: true }))
   };
 }
    
@@ -179,6 +200,9 @@ const drivers = {
   ,HTTP: makeHTTPDriver()
   ,EVENT_DROP: makeEventDropDriver({tag:'#events'})
   ,DATATABLE: makeDataTablesDriver({tableId:'table',tableDivId:'tablediv'})
+  ,history: makeHistoryDriver()
 };
 
-run(main, drivers);
+run(main({
+  initialSettings: getInitialSettings(window.location.search)
+}), drivers);

@@ -1,24 +1,22 @@
 const {pipe,split,map,tail,addIndex,init,filter} = require('ramda');
 const moment = require('moment');
 
-/* SAMPLE:
-10/24/2018 11:55:30 AM General Information Process Id: 24000 Thread Id: 22692
-ExecSQL called. For database [CentralDWH],
-sqlQuery=select category_id, category_name from categories with (nolock)
----
-*/
+const re = /^(.*?)((\d{2,4}[\-\/]\d{2,4}[\-\/]\d{2,4})[ T](\d{1,2}[:]\d{2}[:]\d{2}))?(.*)$/muis;   
 
-const re = /^((\S+) (\S+) (\S+)) (.*) Process Id: (\d+) Thread Id: (\d+)\r\n(.*)$/muis;   
-
+// given a log line, spit out an object
 const mapping = (fixedProps,index,m) => ({
   ...fixedProps
   ,index
   //,dateRaw: m[1]
-  ,date: m[1] && moment(m[1], "MM-DD-YYYY hh:mm:ss A").add(-4, 'hours').format()
-  ,type: m[5]
-  ,processId: m[6]
-  ,threadId: m[7]
-  ,message: m[8] && m[8].trim()
+  ,date: m[2] && moment(m[3]).toISOString()
+  ,dateRaw: m[3]
+  ,timeRaw: m[4]
+  ,dateTimeRaw: m[2]
+  //,date: m[1] && moment(m[1], "MM-DD-YYYY hh:mm:ss A").add(-4, 'hours').format()
+  //,type: m[5]
+  //,processId: m[6]
+  //,threadId: m[7]
+  //,message: m[8] && m[8].trim()
 });
 
 const parser = ({
@@ -35,10 +33,9 @@ const mapWithIndex = addIndex(map);
 
 // inefficient to split then parse.... better to use transducer
 const parse = opts => pipe(
-  split(/^---\r\n/m)
+  split(/\n/m)
   ,init
   ,mapWithIndex(parser(opts))
-  //,filter(row=>row.index>45000)
 );  
 
 module.exports = parse;
