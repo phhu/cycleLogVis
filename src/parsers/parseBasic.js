@@ -1,6 +1,7 @@
 const {pipe,split,map,tail,addIndex,init,filter} = require('ramda');
 const moment = require('moment');
 
+// hope there's a date somewhere on the line, followed by a time
 const re = /^(.*?)((\d{2,4}[\-\/]\d{2,4}[\-\/]\d{2,4})[ T](\d{1,2}[:]\d{2}[:]\d{2}))?(.*)$/muis;   
 
 // given a log line, spit out an object

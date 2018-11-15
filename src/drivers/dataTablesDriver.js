@@ -1,4 +1,4 @@
-import * as R from 'ramda';
+import {pipe,head,keys,reject,map} from 'ramda';
 
 // see https://datatables.net/forums/discussion/32542/datatables-and-webpack
 // some details at https://datatables.net/download/npm
@@ -30,11 +30,11 @@ const staticColumnDefs = {
     ,render:preRenderer
   }
 };
-const getColumnsFromFirstRowOfData = R.pipe(
-  R.head,
-  R.keys,
-  R.reject(k=>k.substr(0,1)==='_'),
-  R.map(key => ({
+const getColumnsFromFirstRowOfData = pipe(
+  head,
+  keys,
+  reject(k=>k.substr(0,1)==='_'),
+  map(key => ({
     ...staticColumnDefs[key]
     ,data: key
     ,title:key

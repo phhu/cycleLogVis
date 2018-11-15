@@ -1,13 +1,12 @@
 import * as d3 from "d3";
 //import eventDrops from 'event-drops';
-import eventDrops from '../../../../Documents/GitHub/eventDrops/dist';
+import {adapt} from '@cycle/run/lib/adapt';
 import xs from 'xstream';
+
+import eventDrops from '../../../../Documents/GitHub/eventDrops/dist';
 import './style.css';
 
-// see https://cycle.js.org/drivers.html#drivers-how-to-make-drivers. 
-//Adapt needed if we return something 
-import {adapt} from '@cycle/run/lib/adapt';
-import * as R from 'ramda';
+//import * as R from 'ramda';
 import {parse as toDate} from 'date-fns';
 
 const tooltip = d3
@@ -17,12 +16,12 @@ const tooltip = d3
   .style('opacity', 0)
   .style('pointer-events', 'auto');
 
-const getAllEvents = R.prop('_allEvents');
+const getAllEvents = x=>x['_allEvents'];
   
 // have a look in https://github.com/marmelab/EventDrops/blob/master/src/config.js for examples
-const chart = eventDrops({
+const chart = opts => eventDrops({
   metaballs: false,
-  range: {start: new Date(2018,9,10),end: new Date(2018,9,30)},
+  range: {start: new Date(opts.startDate || '2018/10/20'),end: new Date(opts.endDate || '2018/10/22')},
   drop: {
     date: d => toDate(d.date || d.dateParsed || d.dateRaw),
     radius: (data,index) => Math.min(4 + Math.pow(data._allEvents.length,1/2),20),
@@ -83,12 +82,12 @@ const chart = eventDrops({
   },
 });
 
-var update = R.F;    // initial function does nothing - only once stream set up 
+var update = ()=>{};    // initial function does nothing - only once stream set up 
 
-const updateChart = ({tag}) => data => {
+const updateChart = (opts = {}) => data => {
   console.log("data for chart",data);
   d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
-  d3.select(tag).data([data]).call(chart); 
+  d3.select(opts.tag).data([data]).call(chart(opts)); 
 };
 
 export const makeEventDropDriver = opts => data$ => {
@@ -109,7 +108,7 @@ export const makeEventDropDriver = opts => data$ => {
 
 //  a test data set 
 export const testData = [ {
-  "name": "Speech Source Measure Export Adapter[RIEXTENDER102]**",
+  "name": "* Test Data for event drop driver *",
   "data": [
     {
       "date": "2018-10-21 03:30:26",

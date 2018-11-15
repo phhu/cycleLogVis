@@ -51,3 +51,19 @@ const filterByString = curryN(3,
 );
 
 module.exports = filterByString;
+
+
+
+/*
+const stringMatchesRegExp = (reString, str) => {
+  try {
+    return new RegExp(reString,'i').test(str);
+  } catch(e){
+    console.error(
+      "error with stringMatchesRegExp: filter regexp probably invalid: "
+      ,reString
+    );
+  }
+  return true; // pass everything
+};
+*/

@@ -3,6 +3,8 @@
 import {always,pipe,omit,prop,map,find,tap,split} from 'ramda';
 const parseLog = require('./parsers/parseLog')({includeLine:false});
 const parseSpeechLog = require('./parsers/parseSpeechLog')({includeLine:false});
+const parseLtf = require('./parsers/parseLtf')({includeLine:false});
+const parseBasic = require('./parsers/parseBasic')({includeLine:true});
 const {bpxServerXmlToTimeline} = require('./parsers/parseBPXserverXML');
 const getZip = require('./utils/getZip');
 
@@ -27,17 +29,22 @@ const requestPropsByType = [
       ]
     })
   },
+  {
+    re:'\\.ltf$',
+    props: req => ({
+      transforms: [
+        prop('text'),
+        parseLtf,
+        logToData(req.url),
+      ]
+    })
+  },
   { 
     re:'SpeechSourceMeasureProvider\\.log$',
     props: req => ({
       transforms:[
         prop('text')
         ,parseSpeechLog
-        //,always('blah blah blah ')
-        //,split(/---\r\n/g)
-        //,map(text=>'fake')
-        //,tap(x=>console.log("speech source text",x[1]))
-        //,map(data=>({text:data}))
         ,logToData(req.url),
       ]
     })
@@ -104,11 +111,7 @@ const requestPropsByType = [
       //responseType: 'blob'
       transforms: [
         prop('text'),
-        body => ([{
-          date:'2018-10-24'
-          ,text:'URL not recognised in requestMapper'
-          ,body   //: body.substr(0,1000)
-        }]),
+        parseBasic,
         logToData(req.url),
       ] 
     })

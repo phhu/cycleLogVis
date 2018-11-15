@@ -3,7 +3,7 @@ const moment = require('moment');
 
 /* SAMPLE:
 10/24/2018 11:55:30 AM General Information Process Id: 24000 Thread Id: 22692
-ExecSQL called. For database [CentralDWH],
+ExecSQL called. For database [dbname],
 sqlQuery=select category_id, category_name from categories with (nolock)
 ---
 */
