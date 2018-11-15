@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+
+<html>
+<head>  
+  <title>Integration Server Vis</title>
+  <link rel="icon" href="favicon.png">
+  <link href="https://unpkg.com/event-drops/dist/style.css" rel="stylesheet" />
+  <style>
+    .eventsVscroll {
+      width: auto;
+      max-height: 500px;
+      overflow-y: scroll;
+      overflow-x:hidden;
+    }
+    thead, th {text-align: left;}
+    table.dataTable tbody td {
+      vertical-align: top;
+    }
+  </style>
+</head>
+<body>
+  <div id ="app"></div>
+  <div id="events" class="eventsVscroll"></div>
+  <div id="text"></div>
+  <div id="tablediv"></div>
+  <script src="main.js"></script>
+</body>
+
+</html>
