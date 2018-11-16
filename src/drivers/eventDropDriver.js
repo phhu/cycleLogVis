@@ -26,6 +26,10 @@ const chart = opts => eventDrops({
     date: d => toDate(d.date || d.dateParsed || d.dateRaw),
     radius: (data,index) => Math.min(4 + Math.pow(data._allEvents.length,1/2),20),
     color: (data,index) => {
+      const i =  data._allEvents.findIndex(e=>e.color);
+      return  (i > -1) ? data._allEvents[i].color : 'black';
+    },
+    colorOld: (data,index) => {
       const colors = {
         'COMPLETED': 'green',
         'FAILED' : 'red'
@@ -75,10 +79,10 @@ const chart = opts => eventDrops({
   label: {
     padding: 20,
     width: 400,
-    text: d => `${d.name} (${d.data.length})`
+    text: d => `${d.name} (${d.data.length} / ${d.fullData.length})`
   },
   line :{
-    color: (line,index) => (/.*\]\*\*$/.test(line.name) ? 'red' : 'blue')
+    //color: (line,index) => {console.log(line,index);return 'red' ; (/.*\]\*\*/.test(line.name) ? 'red' : 'blue')}
   },
 });
 

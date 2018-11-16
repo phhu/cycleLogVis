@@ -1,4 +1,4 @@
-const {pipe,split,map,tail,addIndex} = require('ramda');
+const {pipe,split,map,tail,addIndex,identity} = require('ramda');
 
 const re = /^\[([^\]]*)\]-\[([^\]]*)\] \[([^\]]*)\] \[([^\]]*)\] \[(?:\[[A-Z]*\] )?([^\]]*)\] \[([^\]]*)\] \<##(.*)##\> - ([\s\S]*)$/mi;   
 const userRe = /\[\{user=(.*)\}\]/;
@@ -6,10 +6,11 @@ const userRe = /\[\{user=(.*)\}\]/;
 const parser = ({
   fixedProps = {}
   ,includeLine = false
+  ,transforms = false
 } = {}) => (chunk,index) => {   
   const line = chunk.toString();
   const m = re.exec(line)||{input:line};
-  ret = ({
+  const ret = ({
     ...fixedProps
     ,index
     ,date: new Date(m[3] && m[3]
@@ -26,7 +27,7 @@ const parser = ({
     ,message: m[8] && m[8].trim()
   });
   if(includeLine) { ret.line = m.input;}
-  return ret;
+  return transforms ? pipe(...transforms)(ret) : ret;
 }
 
 module.exports = opts => pipe(

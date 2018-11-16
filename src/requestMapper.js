@@ -1,7 +1,15 @@
 // this fills a request object with properties, generally based on url
 
 import {always,pipe,omit,prop,map,find,tap,split} from 'ramda';
-const parseLog = require('./parsers/parseLog')({includeLine:false});
+const parseLog = require('./parsers/parseLog')({includeLine:false,transforms:[
+  row => {
+    if (/45731/i.test(row.message)){
+      //console.log("found error");
+      row.color = 'red'
+    }
+    return row;
+  }
+]});
 const parseSpeechLog = require('./parsers/parseSpeechLog')({includeLine:false});
 const parseLtf = require('./parsers/parseLtf')({includeLine:false});
 const parseBasic = require('./parsers/parseBasic')({includeLine:true});

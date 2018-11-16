@@ -2,9 +2,10 @@
 import debounce from 'xstream/extra/debounce';
 import {pipe,map,path,fromPairs} from 'ramda';
 
-export const inputDefaultMapper = i => ({
+export const addDefaultsToInputs = i => ({
   displayName:i.name
   ,debounce:25
+  ,type:'text'
   ,...i
 });
  
@@ -14,7 +15,7 @@ export const getDomInputStreams = (sources,initialSettings) =>
       input.name + '$'
       ,sources.DOM
         .select('#' + input.name)
-        .events('keyup')
+        .events('input')
         .compose(debounce(input.debounce))
         .map(path(['target','value']))
         .startWith(initialSettings[input.name] || '') 

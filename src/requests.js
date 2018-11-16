@@ -6,6 +6,8 @@ import {format} from 'date-fns';
 
 // put multiple requests on one line of chart
 
+//const addSourceNameToData = rowName => map(assoc)
+
 export const combineByGroup = groups => data => 
   concat(...groups.reduce (
     ([processed,source],group) => {
@@ -17,10 +19,10 @@ export const combineByGroup = groups => data =>
         processed.push ({
           name:group.name
           ,data: pipe(
-            map(r=> pipe(
+            map(row=> pipe(
               prop('data')
-              ,map(assoc('sourceFile', prop('name')(r)))
-            )(r))
+              ,map(assoc('sourceFile', row.name))   //addsourcefile
+            )(row))
             ,unnest 
           )(matching)
         });
@@ -38,8 +40,10 @@ const fakeData = category => ({
     ,text:"loading: "+ category
   }]
 });
+
 const toStreamWithAnyPromisesResolved = x =>
   xs.fromPromise(Promise.resolve(x));
+
 const forceIntoArray = d=>[].concat(d);
 
 export const getResponse = sources => ({
