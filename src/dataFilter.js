@@ -1,7 +1,8 @@
 const addDefaultsToRules = r => ({
-  nameRe:new RegExp(r.name, 'i')
+  nameRe:new RegExp(r.name || '.*', 'i')
   ,searchRe: new RegExp(r.search,'i')
   ,priority: 1
+  ,name: '.*'
   ,...r
 });
 

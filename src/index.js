@@ -41,11 +41,12 @@ const requests = [
   //{url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-12-10-02-613.zip`},
   //{url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-19-28-03-159.zip`},
   //{url: `${ISLOGS}/IServer.log`},
-  {url: `${ISLOGS}/Plugin_RIExtender102.log`},
+  {url: `http://10.156.206.151:8081/ProductionServer/wfo.log4j.log`},
+  //{url: `${ISLOGS}/Plugin_RIExtender102.log`},
   //{url: `${ISLOGS}/Plugin_RIExtender102/2018-09-12/2018-09-12-23-12-01-453.zip`},
   //{url: `${ISLOGS}/IServer/2018-10-24/`},
-  {url: `${FE}/BPX-Server.xml`}, // would be good to filter this?    
-  {url: `${FE}/Plugins/Speech/Logs/SpeechSourceMeasureProvider.log`},
+  //{url: `${FE}/BPX-Server.xml`}, // would be good to filter this?    
+  //{url: `${FE}/Plugins/Speech/Logs/SpeechSourceMeasureProvider.log`},
   //{url: '/data/Plugin_BatchExtender102.log'},
   //{url: '/data/2018-09-12-23-12-01-453.zip'},
 ].map(requestMapper);
