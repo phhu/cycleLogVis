@@ -27,7 +27,8 @@ const parser = ({
     ,message: m[8] && m[8].trim()
   });
   if(includeLine) { ret.line = m.input;}
-  return transforms ? pipe(...transforms)(ret) : ret;
+  return ret;
+  //return transforms ? pipe(...transforms)(ret) : ret;
 }
 
 module.exports = opts => pipe(

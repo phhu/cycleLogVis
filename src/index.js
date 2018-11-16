@@ -16,6 +16,7 @@ import {requestMapper} from './requestMapper';
 import {addDefaultsToInputs, getDomInputStreams} from './inputs'
 import {combineByGroup, getResponse} from './requests'
 import {objectToQueryString,queryStringToObject} from './utils/settings';
+import {addColors,filterDataRows} from './dataFilter';
 
 const filterByString = require('./utils/regExpFilter')({textFn:prop('name'),reBuilder:'or'});
 // for debugging pipes: debug('test')
@@ -71,6 +72,8 @@ const main = ({initialSettings,requests,requestGroups}) => sources => {
   const chartData$ = xs.combine(...responses)
     .map(unnest)
     .map(combineByGroup(requestGroups))    // better to pass in a function to do combination?
+    //.debug("chartData Pre filter")    // better to pass in a function to do combination?
+    //
   ; 
   // event drop clicks
   const clickedEventDropData$ = sources.EVENT_DROP
@@ -106,7 +109,9 @@ const main = ({initialSettings,requests,requestGroups}) => sources => {
       .map(domLayout(inputs))
     ,EVENT_DROP: xs.combine(domInputs.filter$,chartData$)
       .map(([filter,data]) => filterByString(filter,data) )    // filter the rows
-      .debug("chartDataFiltered")
+      .map(filterDataRows )
+      .map(addColors)
+      //.debug("chartDataFiltered and colored")
       //could also do a filter by value here
     ,DATATABLE: clickedEventDropData$
       .map(pipe(

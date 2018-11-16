@@ -39,11 +39,11 @@ const parse = opts => pipe(
   split(/^---\r\n/m)
   ,init
   ,mapWithIndex(parser(opts))
-  ,map(row => {
+  /*,map(row => {
     if(/(success)/i.test(row.message)){row.color = 'green'};
     if(/(failure|faili?ed)/i.test(row.message)){row.color = 'red'};
     return row;
-  })
+  })*/
   //,filter(row=>row.index>45000)
 );  
 

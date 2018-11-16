@@ -6,7 +6,7 @@ import xs from 'xstream';
 import eventDrops from '../../../../Documents/GitHub/eventDrops/dist';
 import './style.css';
 
-//import * as R from 'ramda';
+import {clone} from 'ramda';
 import {parse as toDate} from 'date-fns';
 
 const tooltip = d3
@@ -26,8 +26,14 @@ const chart = opts => eventDrops({
     date: d => toDate(d.date || d.dateParsed || d.dateRaw),
     radius: (data,index) => Math.min(4 + Math.pow(data._allEvents.length,1/2),20),
     color: (data,index) => {
-      const i =  data._allEvents.findIndex(e=>e.color);
-      return  (i > -1) ? data._allEvents[i].color : 'black';
+      const coloredRows = data._allEvents.filter(r=>r.color);
+      return (data._allEvents.reduce((acc,row)=>{
+        if (row.colorPriority && row.colorPriority > acc.priority){return {color:row.color,priority:row.colorPriority};} 
+        if (row.color && acc.priority < 1){return {color:row.color,priority:1}; }
+        return acc;
+      },{color:'black',priority:0})).color;
+      //const i =  data._allEvents.findIndex(e=>e.color);
+      //return  (i > -1) ? data._allEvents[i].color : 'black';
     },
     colorOld: (data,index) => {
       const colors = {
@@ -89,9 +95,11 @@ const chart = opts => eventDrops({
 var update = ()=>{};    // initial function does nothing - only once stream set up 
 
 const updateChart = (opts = {}) => data => {
-  console.log("data for chart",data);
+  //const chartData = clone(data);    // it gets mutated.... so clone it
+  const chartData = data;    // it gets mutated.... so clone it
+  console.log("data in eventDropDriver",chartData);
   d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
-  d3.select(opts.tag).data([data]).call(chart(opts)); 
+  d3.select(opts.tag).data([chartData]).call(chart(opts)); 
 };
 
 export const makeEventDropDriver = opts => data$ => {
