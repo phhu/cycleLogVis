@@ -1,9 +1,10 @@
 {
   "presets": [
-    "@babel/preset-env"
+    "@babel/preset-env" 
   ],
   "plugins": [
     "syntax-jsx",
+    "@babel/transform-regenerator",
     ["transform-react-jsx", {"pragma": "Snabbdom.createElement"}]
   ]
 }
