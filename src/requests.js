@@ -41,7 +41,7 @@ const fakeData = category => ({
   }]
 });
 
-const toStreamWithAnyPromisesResolved = x =>
+export const toStreamWithAnyPromisesResolved = x =>
   xs.fromPromise(Promise.resolve(x));
 
 const forceIntoArray = d=>[].concat(d);

@@ -1,21 +1,15 @@
 // this fills a request object with properties, generally based on url
 
-import {always,pipe,omit,prop,map,find,tap,split} from 'ramda';
-const parseLog = require('./parsers/parseLog')({includeLine:false,transforms:[
-  row => {
-    if (/45731/i.test(row.message)){
-      //console.log("found error");
-      row.color = 'red'
-    }
-    return row;
-  }
-]});
+import {pipe,omit,prop,map,find,is} from 'ramda';
+
+// this could probably be generalised a bit... e.g. read folder and import as parsers object 
+const parseLog = require('./parsers/parseLog')({includeLine:false});
 const parseSpeechLog = require('./parsers/parseSpeechLog')({includeLine:false});
 const parseLtf = require('./parsers/parseLtf')({includeLine:false});
 const parseBasic = require('./parsers/parseBasic')({includeLine:true});
 const {bpxServerXmlToTimeline} = require('./parsers/parseBPXserverXML');
-const getZip = require('./utils/getZip');
 
+const getZip = require('./utils/getZip');
 const isInNameDataFormat = d => (
   d[0] && Object.keys(d[0]).length == 2 && 
   d[0].name && d[0].data
@@ -133,10 +127,19 @@ const stringMatchesRegExp = (reString, str) => {
 }
 const getExtensionFromUrl = url => url.replace(/^.*?\.(.*?)(\.[0-9]+)?$/,"$1");
 
-export const requestMapper = req => ({
-  category: req.url
-  //,type: getType(req.url)
-  //,...requestPropsByType[getExtensionFromUrl(req.url)](req)
-  ,...(find(x=>stringMatchesRegExp(x.re,req.url),requestPropsByType).props(req))
-  ,...req
-});
+export const requestMapper = req => { 
+  req = is(String, req) ? {url:req} : req;   // allow just putting in a url as string instead of object
+  return ({
+    url: req.url         
+    ,category: req.url
+    //,type: getType(req.url)
+    //,...requestPropsByType[getExtensionFromUrl(req.url)](req)
+    ,...(
+      find(     // get matching props from 
+        x=>stringMatchesRegExp(x.re,req.url)   
+        ,requestPropsByType)
+      .props(req)
+    )
+    ,...req
+  })
+};

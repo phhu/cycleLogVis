@@ -14,9 +14,10 @@ import {makeEventDropDriver} from './drivers/eventDropDriver';
 import {makeDataTablesDriver} from './drivers/dataTablesDriver';
 import {requestMapper} from './requestMapper';
 import {addDefaultsToInputs, getDomInputStreams} from './inputs'
-import {combineByGroup, getResponse} from './requests'
+import {combineByGroup, getResponse, toStreamWithAnyPromisesResolved} from './requests'
 import {objectToQueryString,queryStringToObject} from './utils/settings';
 import {addColors,filterDataRows} from './dataFilter';
+import {getFilesUnderFolder} from './filesFromFolder';
 
 const filterByString = require('./utils/regExpFilter')({textFn:prop('name'),reBuilder:'or'});
 // for debugging pipes: debug('test')
@@ -35,13 +36,14 @@ const initialSettings = queryStringToObject(window.location.search);
 
 const ISLOGS = '/logs/Integration%20Server';
 const FE = '/software/FusionExchange';
-const requests = [
+
+const fileRequests = [
   //{url: '/data/timeline.json'},
   //{url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-04-58-02-789.zip`},
   //{url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-12-10-02-613.zip`},
   //{url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-19-28-03-159.zip`},
-  //{url: `${ISLOGS}/IServer.log`},
-  {url: `http://10.156.206.151:8081/ProductionServer/wfo.log4j.log`},
+  `${ISLOGS}/IServer.log`,
+  // `http://10.156.206.151:8081/ProductionServer/wfo.log4j.log`,
   //{url: `${ISLOGS}/Plugin_RIExtender102.log`},
   //{url: `${ISLOGS}/Plugin_RIExtender102/2018-09-12/2018-09-12-23-12-01-453.zip`},
   //{url: `${ISLOGS}/IServer/2018-10-24/`},
@@ -49,7 +51,15 @@ const requests = [
   //{url: `${FE}/Plugins/Speech/Logs/SpeechSourceMeasureProvider.log`},
   //{url: '/data/Plugin_BatchExtender102.log'},
   //{url: '/data/2018-09-12-23-12-01-453.zip'},
-].map(requestMapper);
+];
+const folderRequests = [
+  `${ISLOGS}/Plugin_BatchExtender7/`
+];
+const mergeRequests = async (fileRequests,folderRequests) => {
+  const fromFolder = await folderRequests.map(getFilesUnderFolder);
+  return fileRequests.concat(...fromFolder);
+}
+const requests = mergeRequests(fileRequests,folderRequests).map(requestMapper);
 
 const requestGroups = [
   {name:'iserver.log',re: /iserver/i}
@@ -67,7 +77,7 @@ const main = ({initialSettings,requests,requestGroups}) => sources => {
   const domInputs = getDomInputStreams(sources,initialSettings)(inputs);
   
   // requests  
-  const httpRequest$ = xs.fromArray(requests); 
+  const httpRequest$ = xs.fromArray(requests);      // need to de-promise these! 
   const responses = requests.map(getResponse(sources));
   
   const chartData$ = xs.combine(...responses)
