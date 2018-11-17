@@ -6,6 +6,7 @@ import {makeDOMDriver} from '@cycle/dom';
 import {makeHTTPDriver} from '@cycle/http';
 import {makeHistoryDriver} from '@cycle/history';
 import Snabbdom from 'snabbdom-pragma';
+import 'babel-polyfill';
 
 import {format} from 'date-fns'
 import {prop,pipe,map,tap,omit,values,unnest,zipWith,zipObj,pluck} from 'ramda';
@@ -53,16 +54,23 @@ const fileRequests = [
   //{url: '/data/2018-09-12-23-12-01-453.zip'},
 ];
 const folderRequests = [
-  `${ISLOGS}/Plugin_BatchExtender7/`
+  `http://localhost:8081${ISLOGS}/Plugin_RIExtender/`
 ];
+
 const mergeRequests = async (fileRequests,folderRequests) => {
-  const fromFolder = await folderRequests.map(getFilesUnderFolder);
-  return fileRequests.concat(...fromFolder);
+  let pp;
+  const getFiles = folderRequests.map(getFilesUnderFolder);
+  try {
+    pp = await Promise.all(getFiles);
+  } catch (e){
+    console.error("error getting folders" ,e);
+  }
+  return fileRequests.concat(...pp).map(requestMapper);
 }
-const requests = mergeRequests(fileRequests,folderRequests).map(requestMapper);
 
 const requestGroups = [
-  {name:'iserver.log',re: /iserver/i}
+  {name:'lugin_RIExtender',re: /\/Plugin_RIExtender\//i}
+  ,{name:'iserver.log',re: /iserver/i}
   ,{name:'Plugin_RIExtender102.log',re: /Plugin_RIExtender102/i}
 ];
 
@@ -73,6 +81,7 @@ const main = ({initialSettings,requests,requestGroups}) => sources => {
     {name:'filter',displayName:'filter chart',debounce:500, style:"width:30%"}
     ,{name:'startDate',type:'date'}
     ,{name:'endDate',type:'date'}
+    ,{name:'requests',type:'textarea'}
   ].map(addDefaultsToInputs);
   const domInputs = getDomInputStreams(sources,initialSettings)(inputs);
   
@@ -120,8 +129,8 @@ const main = ({initialSettings,requests,requestGroups}) => sources => {
       .map(domLayout(inputs))
     ,EVENT_DROP: xs.combine(domInputs.filter$,chartData$)
       .map(([filter,data]) => filterByString(filter,data) )    // filter the rows
-      .map(filterDataRows )
-      .map(addColors)
+      //.map(filterDataRows )
+      //.map(addColors)
       //.debug("chartDataFiltered and colored")
       //could also do a filter by value here
     ,DATATABLE: clickedEventDropData$
@@ -148,7 +157,11 @@ const drivers = {
   ,history: makeHistoryDriver()
 };
 
-run(
-  main({initialSettings,requests,requestGroups})
-  ,drivers
-);
+mergeRequests(fileRequests,folderRequests)
+.then(requests => {
+  console.log("requests",requests);
+  run(
+    main({initialSettings,requests,requestGroups})
+    ,drivers
+  )
+})

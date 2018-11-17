@@ -94,12 +94,16 @@ const chart = opts => eventDrops({
 
 var update = ()=>{};    // initial function does nothing - only once stream set up 
 
+//const bump = f => setTimeout(f,0);
+
 const updateChart = (opts = {}) => data => {
-  //const chartData = clone(data);    // it gets mutated.... so clone it
-  const chartData = data;    // it gets mutated.... so clone it
+  //const chartData = clone(data);    // it gets mutated.... so clone it??
+  const chartData = data;
   console.log("data in eventDropDriver",chartData);
-  d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
-  d3.select(opts.tag).data([chartData]).call(chart(opts)); 
+  setTimeout(()=>{
+    d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
+    d3.select(opts.tag).data([chartData]).call(chart(opts)); 
+  });
 };
 
 export const makeEventDropDriver = opts => data$ => {
