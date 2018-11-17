@@ -127,7 +127,7 @@ const stringMatchesRegExp = (reString, str) => {
 }
 const getExtensionFromUrl = url => url.replace(/^.*?\.(.*?)(\.[0-9]+)?$/,"$1");
 
-export const requestMapper = req => { 
+export const addDefaultsToRequest = req => { 
   req = is(String, req) ? {url:req} : req;   // allow just putting in a url as string instead of object
   return ({
     url: req.url         
@@ -135,7 +135,7 @@ export const requestMapper = req => {
     //,type: getType(req.url)
     //,...requestPropsByType[getExtensionFromUrl(req.url)](req)
     ,...(
-      find(     // get matching props from 
+      find(     // get matching props from req definition
         x=>stringMatchesRegExp(x.re,req.url)   
         ,requestPropsByType)
       .props(req)

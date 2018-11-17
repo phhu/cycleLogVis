@@ -2,18 +2,18 @@ import xs from 'xstream';
 import debounce from 'xstream/extra/debounce';
 //import throttle from 'xstream/extra/throttle';
 import {run} from '@cycle/run';
-import {makeDOMDriver} from '@cycle/dom';
+import {makeDOMDriver, h,div} from '@cycle/dom';
 import {makeHTTPDriver} from '@cycle/http';
 import {makeHistoryDriver} from '@cycle/history';
-import Snabbdom from 'snabbdom-pragma';
-import 'babel-polyfill';
+//import Snabbdom from 'snabbdom-pragma';    //could prob get rid of JSX
+import 'babel-polyfill';    // needed for async 
 
 import {format} from 'date-fns'
-import {prop,pipe,map,tap,omit,values,unnest,zipWith,zipObj,pluck} from 'ramda';
+import {prop,propOr,pipe,map,tap,omit,replace,values,unnest,zipWith,zipObj,pluck,trim,split} from 'ramda';
 
 import {makeEventDropDriver} from './drivers/eventDropDriver';
 import {makeDataTablesDriver} from './drivers/dataTablesDriver';
-import {requestMapper} from './requestMapper';
+import {addDefaultsToRequest} from './requestMapper';
 import {addDefaultsToInputs, getDomInputStreams} from './inputs'
 import {combineByGroup, getResponse, toStreamWithAnyPromisesResolved} from './requests'
 import {objectToQueryString,queryStringToObject} from './utils/settings';
@@ -25,36 +25,60 @@ const filterByString = require('./utils/regExpFilter')({textFn:prop('name'),reBu
 const debug = label => tap(x=>console.log(label,x));
 
 /*
-- automate directory parsing to get logs
-  - extract directory structure from base path, for HTTP or file system
-- highlighting / hiding / deletion of (un)interesting entries
-  - could do mapping on chart data stream - i.e. calculate colors at point of chart refresh. (without reloading data). Prob just a mapping on the chart data stream.
-- make json colouring rules: e.g. {set: '.*', color:red, priority: 1, field: 'message', test: 'faiulre / reTest:'failure' reflag:'i'}
-  - or might be possible to apply css to SVG elements, then to change css definition (e.g. put drops into classes, then change class def)
-
+- improve performance:
+  - get rid of dependencies (moment, jsx, superagent (should be http driver?), babel poyfill / async?)
+  - add timeouts / promises (esp for parsers)
+  - use transducers in parsers
+  - allow filtering by date range
+- improve interface
+  - color / filter controls
+  - request / log file selector control
+    - easy to make list by parsing the logs folder 
+    - could put grouped stuff on same line of input textarea, allowing user to group. 
+      - e.g. folder + log file on same line
+    - treat folders like regular log? i.e. parse the html, then retrieve the files and 
+      return the parsed files combined (in a promise, like a zip - use same code a zip?)
+       - just do a name / data pair for each file, allowing the grouping to merge if nec 
+        - can match the names as base of url will be same 
+  - allow to load logs dynamically (i.e include requests in the main loop as stream / control)
+- database integration: 
+  - run query to get timeline (e.g. on SQL profiler output)
+  - run SQL derived from logs (including profiler output)
+  - could also save arbitrary queries run at certain points in time (to see how values vary over time)
 */
 const initialSettings = queryStringToObject(window.location.search);
+console.log("initial settings",initialSettings);
+const defaultRequest = '/data/timeline.json';
+const getRequestsFromInitialSettings = 
+  pipe(
+    propOr(defaultRequest,'requests')
+    ,replace(/^\s*$/,defaultRequest)
+    ,trim
+    ,split(/\s+/)      // do grouping on new lnes? 
+    ,map(addDefaultsToRequest)
+  )
+;
 
 const ISLOGS = '/logs/Integration%20Server';
 const FE = '/software/FusionExchange';
 
 const fileRequests = [
-  //{url: '/data/timeline.json'},
+  {url: '/data/timeline.json'},
   //{url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-04-58-02-789.zip`},
   //{url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-12-10-02-613.zip`},
   //{url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-19-28-03-159.zip`},
-  `${ISLOGS}/IServer.log`,
+  `/logs/Integration%20Server/IServer.log`,
   // `http://10.156.206.151:8081/ProductionServer/wfo.log4j.log`,
-  //{url: `${ISLOGS}/Plugin_RIExtender102.log`},
+  //{url: `/logs/Integration%20Server/Plugin_RIExtender102.log`},
   //{url: `${ISLOGS}/Plugin_RIExtender102/2018-09-12/2018-09-12-23-12-01-453.zip`},
   //{url: `${ISLOGS}/IServer/2018-10-24/`},
-  //{url: `${FE}/BPX-Server.xml`}, // would be good to filter this?    
+  //{url: `/software/FusionExchange/BPX-Server.xml`}, // would be good to filter this?    
   //{url: `${FE}/Plugins/Speech/Logs/SpeechSourceMeasureProvider.log`},
   //{url: '/data/Plugin_BatchExtender102.log'},
   //{url: '/data/2018-09-12-23-12-01-453.zip'},
 ];
 const folderRequests = [
-  `http://localhost:8081${ISLOGS}/Plugin_RIExtender/`
+ // `http://localhost:8081${ISLOGS}/Plugin_RIExtender/`
 ];
 
 const mergeRequests = async (fileRequests,folderRequests) => {
@@ -65,7 +89,7 @@ const mergeRequests = async (fileRequests,folderRequests) => {
   } catch (e){
     console.error("error getting folders" ,e);
   }
-  return fileRequests.concat(...pp).map(requestMapper);
+  return fileRequests.concat(...pp).map(addDefaultsToRequest);
 }
 
 const requestGroups = [
@@ -74,19 +98,25 @@ const requestGroups = [
   ,{name:'Plugin_RIExtender102.log',re: /Plugin_RIExtender102/i}
 ];
 
-const main = ({initialSettings,requests,requestGroups}) => sources => {
+const main = ({initialSettings,requestGroups}) => sources => {
   
   // intent
   const inputs = [
-    {name:'filter',displayName:'filter chart',debounce:500, style:"width:30%"}
-    ,{name:'startDate',type:'date'}
-    ,{name:'endDate',type:'date'}
-    ,{name:'requests',type:'textarea'}
+    {id:'filter', displayName:'filter chart' ,updateEvent: 'change',debounce:500, style:{width:"30%"}}
+    ,{id:'startDate',attrs: {type:'date'}}
+    ,{id:'endDate',attrs: {type:'date'}}
+    ,{id:'requests',displayName:'requests',tag:'textarea',style:{
+      "white-space":"pre-wrap",   // sorts out enter key behaviour
+      "display":'block',
+      width: "600px",
+      height: "80px",
+    }}
   ].map(addDefaultsToInputs);
   const domInputs = getDomInputStreams(sources,initialSettings)(inputs);
   
   // requests  
-  const httpRequest$ = xs.fromArray(requests);      // need to de-promise these! 
+  const requests = getRequestsFromInitialSettings(initialSettings);
+  const httpRequest$ = xs.fromArray(requests);      // need to de-promise these? 
   const responses = requests.map(getResponse(sources));
   
   const chartData$ = xs.combine(...responses)
@@ -100,27 +130,26 @@ const main = ({initialSettings,requests,requestGroups}) => sources => {
     .startWith([{date:Date(),text:'Click on a blob to view data'}]);
 
   //view  
-  const domLayout = (inputSpecs) => (inputValues) => {
-    const inputDetails = zipWith(
-      (o, value) => ({value,...o}), inputSpecs, inputValues
-    );
-    const inputHtml = inputDetails.map(i=>(
-      <input 
-        placeholder={i.displayName} 
-        id={i.name} 
-        type={i.type || text}
-        value={i.value} 
-        style={i.style}
-      />
-    ));
-    return (
-      <div>
-        <div>
-          {inputHtml}
-        </div>
-      </div>
+  const inputDetails = (specs,values) => zipWith(
+    (spec, value) => ({...spec,value}), specs, values
+  );
+  const domLayout = inputSpecs => inputValues => 
+    div(
+      '.controls',{},
+      inputDetails(inputSpecs,inputValues)
+        .map(({style,id,displayName,value,tag,attrs}) =>
+          h(tag || 'input',{ 
+            style,
+            attrs:{
+              id,
+              placeholder:displayName,
+              value,
+              ...attrs
+            }
+          },value)
+        )
     )
-  };
+  ;
 
   //model 
   return {
@@ -132,7 +161,6 @@ const main = ({initialSettings,requests,requestGroups}) => sources => {
       //.map(filterDataRows )
       //.map(addColors)
       //.debug("chartDataFiltered and colored")
-      //could also do a filter by value here
     ,DATATABLE: clickedEventDropData$
       .map(pipe(
         map(d=>{
@@ -143,7 +171,7 @@ const main = ({initialSettings,requests,requestGroups}) => sources => {
       ))
     ,history: xs.combine(...values(domInputs))
       .compose(debounce(500))
-      .map(zipObj(pluck('name',inputs)))
+      .map(zipObj(pluck('id',inputs)))
       .map(objectToQueryString)
       //.debug("historyOut")
   };
@@ -157,11 +185,15 @@ const drivers = {
   ,history: makeHistoryDriver()
 };
 
+//const requests = getRequestsFromInitialSettings(initialSettings);
+run(
+  main({initialSettings,requestGroups})
+  ,drivers
+);
+
+/*
 mergeRequests(fileRequests,folderRequests)
 .then(requests => {
   console.log("requests",requests);
-  run(
-    main({initialSettings,requests,requestGroups})
-    ,drivers
-  )
 })
+*/

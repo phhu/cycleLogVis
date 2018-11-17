@@ -12,13 +12,13 @@ export const addDefaultsToInputs = i => ({
 export const getDomInputStreams = (sources,initialSettings) => 
  pipe(
     map (input => [
-      input.name + '$'
+      input.id + '$'
       ,sources.DOM
-        .select('#' + input.name)
-        .events('input')
+        .select('#' + input.id)
+        .events(input.updateEvent || 'change')
         .compose(debounce(input.debounce))
         .map(path(['target','value']))
-        .startWith(initialSettings[input.name] || '') 
+        .startWith(initialSettings[input.id] || '') 
     ])
     ,fromPairs
   );
