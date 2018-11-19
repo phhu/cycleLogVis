@@ -40,7 +40,10 @@ const getFolderContents = url => {
 export const getFilesUnderFolder = url => 
   getFolderContents(url)
   .then(getFilesInTree)
+<<<<<<< HEAD
   .catch(err => console.error("Error in getFilesUnderFolder", err))
+=======
+>>>>>>> 4871e6a84b6c961c42250ec3a56fe5e61dc06272
   //.then(logJson("files"))
 ;
 /*module.exports = {
