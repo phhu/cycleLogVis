@@ -9,7 +9,8 @@ import {makeHistoryDriver} from '@cycle/history';
 import 'babel-polyfill';    // needed for async 
 
 import {format} from 'date-fns'
-import {prop,propOr,pipe,map,tap,omit,replace,values,unnest,zipWith,zipObj,pluck,trim,split} from 'ramda';
+import {prop,propOr,pipe,map,tap,omit,replace,values,
+  unnest,zipWith,zipObj,pluck,trim,split} from 'ramda';
 
 import {makeEventDropDriver} from './drivers/eventDropDriver';
 import {makeDataTablesDriver} from './drivers/dataTablesDriver';
@@ -23,6 +24,13 @@ import {getFilesUnderFolder} from './filesFromFolder';
 const filterByString = require('./utils/regExpFilter')({textFn:prop('name'),reBuilder:'or'});
 // for debugging pipes: debug('test')
 const debug = label => tap(x=>console.log(label,x));
+
+/*
+const {runSql,close} = require('./utils/runSql.test');
+runSql('select * from bpconfig')
+.then(res => console.log(JSON.stringify(res.recordset[0],null,2)))
+.then(x=> close());
+*/
 
 /*
 - improve performance:
@@ -46,9 +54,10 @@ const debug = label => tap(x=>console.log(label,x));
   - run SQL derived from logs (including profiler output)
   - could also save arbitrary queries run at certain points in time (to see how values vary over time)
 */
+
 const initialSettings = queryStringToObject(window.location.search);
 console.log("initial settings",initialSettings);
-const defaultRequest = '/data/timeline.json';
+const defaultRequest = 'data/timeline.json';
 const getRequestsFromInitialSettings = 
   pipe(
     propOr(defaultRequest,'requests')
@@ -98,20 +107,35 @@ const requestGroups = [
   ,{name:'Plugin_RIExtender102.log',re: /Plugin_RIExtender102/i}
 ];
 
+const inputs = [
+  {id:'filter', displayName:'filter chart' ,updateEvent: 'change',debounce:500, style:{width:"30%"}}
+  ,{id:'startDate',attrs: {type:'date'}}
+  ,{id:'endDate',attrs: {type:'date'}}
+  ,{id:'requests',displayName:'requests',tag:'textarea',style:{
+    "white-space":"pre-wrap",   // sorts out enter key behaviour
+    "display":'block',
+    width: "600px",
+    height: "40px",
+  }}
+  ,{id:'colorRules',displayName:'Color Rules',tag:'textarea',style:{
+    "white-space":"pre-wrap",   // sorts out enter key behaviour
+   // "display":'block',
+    width: "300px",
+    height: "40px",
+  }}
+  ,{id:'filterRules',displayName:'Filter Rules',tag:'textarea',style:{
+    "white-space":"pre-wrap",   // sorts out enter key behaviour
+   // "display":'block',
+    width: "300px",
+    height: "40px",
+  }}
+].map(addDefaultsToInputs);
+
+
+
 const main = ({initialSettings,requestGroups}) => sources => {
   
   // intent
-  const inputs = [
-    {id:'filter', displayName:'filter chart' ,updateEvent: 'change',debounce:500, style:{width:"30%"}}
-    ,{id:'startDate',attrs: {type:'date'}}
-    ,{id:'endDate',attrs: {type:'date'}}
-    ,{id:'requests',displayName:'requests',tag:'textarea',style:{
-      "white-space":"pre-wrap",   // sorts out enter key behaviour
-      "display":'block',
-      width: "600px",
-      height: "80px",
-    }}
-  ].map(addDefaultsToInputs);
   const domInputs = getDomInputStreams(sources,initialSettings)(inputs);
   
   // requests  
@@ -151,15 +175,19 @@ const main = ({initialSettings,requestGroups}) => sources => {
     )
   ;
 
-  //model 
+  //model  
   return {
     HTTP: httpRequest$
     ,DOM: xs.combine(...values(domInputs))
       .map(domLayout(inputs))
-    ,EVENT_DROP: xs.combine(domInputs.filter$,chartData$)
-      .map(([filter,data]) => filterByString(filter,data) )    // filter the rows
-      //.map(filterDataRows )
-      //.map(addColors)
+    ,EVENT_DROP: xs.combine(domInputs.filter$,domInputs.colorRules$,domInputs.filterRules$,chartData$)
+      .map(([filter,colorRules,filterRules,data]) =>
+        pipe(
+          filterByString(filter)   // filter the chart rows 
+          ,filterDataRows(filterRules)    //filter the event within rows
+          ,addColors(colorRules)
+        )(data)
+      )    
       //.debug("chartDataFiltered and colored")
     ,DATATABLE: clickedEventDropData$
       .map(pipe(
@@ -185,7 +213,6 @@ const drivers = {
   ,history: makeHistoryDriver()
 };
 
-//const requests = getRequestsFromInitialSettings(initialSettings);
 run(
   main({initialSettings,requestGroups})
   ,drivers

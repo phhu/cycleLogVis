@@ -6,21 +6,23 @@ export const addDefaultsToInputs = i => ({
   displayName:i.name
   ,debounce:25
   ,type:'text'
+  ,updateEvent: 'change'
   ,...i
 });
  
 export const getDomInputStreams = (sources,initialSettings) => 
  pipe(
-    map (input => [
-      input.id + '$'
-      ,sources.DOM
-        .select('#' + input.id)
-        .events(input.updateEvent || 'change')
-        .compose(debounce(input.debounce))
-        .map(path(['target','value']))
-        .startWith(initialSettings[input.id] || '') 
-    ])
+    map (input => 
+      [
+        input.id + '$',
+        sources.DOM
+          .select('#' + input.id)
+          .events(input.updateEvent)
+          .compose(debounce(input.debounce))
+          .map(path(['target','value']))
+          .startWith(initialSettings[input.id] || ''),
+      ]
+    )
     ,fromPairs
-  );
-
-
+  )
+;

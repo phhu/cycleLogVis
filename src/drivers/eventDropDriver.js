@@ -56,10 +56,8 @@ const chart = opts => eventDrops({
         .html(`
           <div class="commit"> 
           <div class="content">
-          ${data._allEvents.length} events
-          `
-          + (data._allEvents[0].index ? 
-            ` (First index: ${data._allEvents[0].index})`  : '')
+          ${data._allEvents.length} events`
+          + (data._allEvents[0].index ? ` (First index: ${data._allEvents[0].index})`  : '')
           + data._allEvents.slice(0,25).map(e => `
               <div class="message">
                 <strong>${e.dateRaw || e.date}</strong> 
