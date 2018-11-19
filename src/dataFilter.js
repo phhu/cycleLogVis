@@ -15,7 +15,7 @@ const parseJson = input => {
     parsed = JSON.parse(input);
     return parsed;
   } catch(e){
-    console.error("error parsing json", e);
+    //console.error("error parsing json", e);
   }
   return [];
 } 

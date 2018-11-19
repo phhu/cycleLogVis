@@ -7,6 +7,7 @@ const parseLog = require('./parsers/parseLog')({includeLine:false});
 const parseSpeechLog = require('./parsers/parseSpeechLog')({includeLine:false});
 const parseLtf = require('./parsers/parseLtf')({includeLine:false});
 const parseBasic = require('./parsers/parseBasic')({includeLine:true});
+const parseCsv = require('./parsers/parseCsv')({});
 const {bpxServerXmlToTimeline} = require('./parsers/parseBPXserverXML');
 
 const getZip = require('./utils/getZip');
@@ -15,7 +16,8 @@ const isInNameDataFormat = d => (
   d[0].name && d[0].data
 );
 export const logToData = name => data => 
-  isInNameDataFormat(data) ? data : {name,data};
+  Promise.resolve(data)
+    .then(data => isInNameDataFormat(data) ? data : {name,data});
 //const tapText = pipe(tap(x=>console.log(x)),prop('text'))
 
 //depending on the ending of the URL, get additional properties for request
@@ -27,6 +29,16 @@ const requestPropsByType = [
       transforms: [
         prop('text'),
         JSON.parse,
+        logToData(req.url),
+      ]
+    })
+  },
+  {
+    re:'\\.csv$',
+    props: req => ({
+      transforms: [
+        prop('text'),
+        parseCsv,
         logToData(req.url),
       ]
     })
@@ -57,7 +69,7 @@ const requestPropsByType = [
       transforms:[
         prop('text'),
         parseLog,
-        map(omit(['thread','weblogicName','logger'])),
+        map(omit(['weblogicName','component'])),   // 'logger'   'thread',
         logToData(req.url),
       ]
     })

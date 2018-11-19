@@ -5,13 +5,8 @@ import {run} from '@cycle/run';
 import {makeDOMDriver, h,div} from '@cycle/dom';
 import {makeHTTPDriver} from '@cycle/http';
 import {makeHistoryDriver} from '@cycle/history';
-<<<<<<< HEAD
 //import Snabbdom from 'snabbdom-pragma';    //could prob get rid of JSX
 import 'babel-polyfill';    // needed for async 
-=======
-import Snabbdom from 'snabbdom-pragma';
-import 'babel-polyfill';
->>>>>>> 4871e6a84b6c961c42250ec3a56fe5e61dc06272
 
 import {format} from 'date-fns'
 import {prop,propOr,pipe,map,tap,omit,replace,values,
@@ -44,8 +39,8 @@ runSql('select * from bpconfig')
   - use transducers in parsers
   - allow filtering by date range
 - improve interface
-  - color / filter controls
-  - request / log file selector control
+  - color / filter controls (partially done)
+  - request / log file selector control (partially done)
     - easy to make list by parsing the logs folder 
     - could put grouped stuff on same line of input textarea, allowing user to group. 
       - e.g. folder + log file on same line
@@ -92,11 +87,7 @@ const fileRequests = [
   //{url: '/data/2018-09-12-23-12-01-453.zip'},
 ];
 const folderRequests = [
-<<<<<<< HEAD
  // `http://localhost:8081${ISLOGS}/Plugin_RIExtender/`
-=======
-  `http://localhost:8081${ISLOGS}/Plugin_RIExtender/`
->>>>>>> 4871e6a84b6c961c42250ec3a56fe5e61dc06272
 ];
 
 const mergeRequests = async (fileRequests,folderRequests) => {
@@ -107,11 +98,7 @@ const mergeRequests = async (fileRequests,folderRequests) => {
   } catch (e){
     console.error("error getting folders" ,e);
   }
-<<<<<<< HEAD
   return fileRequests.concat(...pp).map(addDefaultsToRequest);
-=======
-  return fileRequests.concat(...pp).map(requestMapper);
->>>>>>> 4871e6a84b6c961c42250ec3a56fe5e61dc06272
 }
 
 const requestGroups = [
@@ -149,15 +136,6 @@ const inputs = [
 const main = ({initialSettings,requestGroups}) => sources => {
   
   // intent
-<<<<<<< HEAD
-=======
-  const inputs = [
-    {name:'filter',displayName:'filter chart',debounce:500, style:"width:30%"}
-    ,{name:'startDate',type:'date'}
-    ,{name:'endDate',type:'date'}
-    ,{name:'requests',type:'textarea'}
-  ].map(addDefaultsToInputs);
->>>>>>> 4871e6a84b6c961c42250ec3a56fe5e61dc06272
   const domInputs = getDomInputStreams(sources,initialSettings)(inputs);
   
   // requests  
@@ -202,8 +180,12 @@ const main = ({initialSettings,requestGroups}) => sources => {
     HTTP: httpRequest$
     ,DOM: xs.combine(...values(domInputs))
       .map(domLayout(inputs))
-    ,EVENT_DROP: xs.combine(domInputs.filter$,domInputs.colorRules$,domInputs.filterRules$,chartData$)
-      .map(([filter,colorRules,filterRules,data]) =>
+    ,EVENT_DROP: xs.combine(
+      domInputs.filter$,
+      domInputs.colorRules$,
+      domInputs.filterRules$,
+      chartData$
+    ).map(([filter,colorRules,filterRules,data]) =>
         pipe(
           filterByString(filter)   // filter the chart rows 
           ,filterDataRows(filterRules)    //filter the event within rows
@@ -235,7 +217,6 @@ const drivers = {
   ,history: makeHistoryDriver()
 };
 
-<<<<<<< HEAD
 run(
   main({initialSettings,requestGroups})
   ,drivers
@@ -247,13 +228,3 @@ mergeRequests(fileRequests,folderRequests)
   console.log("requests",requests);
 })
 */
-=======
-mergeRequests(fileRequests,folderRequests)
-.then(requests => {
-  console.log("requests",requests);
-  run(
-    main({initialSettings,requests,requestGroups})
-    ,drivers
-  )
-})
->>>>>>> 4871e6a84b6c961c42250ec3a56fe5e61dc06272

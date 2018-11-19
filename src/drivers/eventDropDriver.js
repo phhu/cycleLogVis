@@ -7,7 +7,7 @@ import eventDrops from '../../../../Documents/GitHub/eventDrops/dist';
 import './style.css';
 
 import {clone} from 'ramda';
-import {parse as toDate} from 'date-fns';
+import {parse as toDate, startOfToday, startOfTomorrow} from 'date-fns';
 
 const tooltip = d3
   .select('body')
@@ -21,7 +21,10 @@ const getAllEvents = x=>x['_allEvents'];
 // have a look in https://github.com/marmelab/EventDrops/blob/master/src/config.js for examples
 const chart = opts => eventDrops({
   metaballs: false,
-  range: {start: new Date(opts.startDate || '2018/10/20'),end: new Date(opts.endDate || '2018/10/22')},
+  range: {
+    start: opts.startDate ? new Date(opts.startDate) : startOfToday(),
+    end: opts.endDate ?  new Date(opts.endDate) : startOfTomorrow(),
+  },
   drop: {
     date: d => toDate(d.date || d.dateParsed || d.dateRaw),
     radius: (data,index) => Math.min(4 + Math.pow(data._allEvents.length,1/2),20),

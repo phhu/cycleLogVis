@@ -1,7 +1,8 @@
 const {pipe,split,map,tail,addIndex,init,filter,test} = require('ramda');
 const moment = require('moment');
 
-const re = /^(\S+ \S+) (\S+) (\S+) (\S+) (\S+) (.*)$/muis;   
+//double space is a missing field
+const re = /^(\S+\s\S+)\s(\S*)\s(\S*)\s(\S*)\s(\S*)\s(.*)$/muis;   
 
 // given a log line, spit out an object
 const mapping = (fixedProps,index,m) => ({

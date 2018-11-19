@@ -30,13 +30,11 @@
     
     /data/timeline.json
     /logs/Integration%20Server/IServer/2018-10-21/2018-10-21-04-58-02-789.zip
-    /logs/Integration%20Server/IServer/2018-10-21/2018-10-21-12-10-02-613.zip
-    /logs/Integration%20Server/IServer/2018-10-21/2018-10-21-19-28-03-159.zip
     /logs/Integration%20Server/IServer.log
     http://10.156.206.151:8081/ProductionServer/wfo.log4j.log
     /logs/Integration%20Server/Plugin_RIExtender102.log
     /logs/Integration%20Server/Plugin_RIExtender102/2018-09-12/2018-09-12-23-12-01-453.zip
-    /logs/Integration%20Server/IServer/2018-10-24/,
+    /logs/Integration%20Server/IServer/2018-10-24/
     /software/FusionExchange/BPX-Server.xml
     /software/FusionExchange/Plugins/Speech/Logs/SpeechSourceMeasureProvider.log
     /data/Plugin_BatchExtender102.log
@@ -52,7 +50,10 @@
       {"name":"speech",  "field":"message", "search":"(error|failure)"}, 
       {"name":"102",  "field":"message", "search":"(success)"}
     ]
-
+    //basic color rule:
+    [{"search":"(error|failure)", "color":"red"} ]
+    //basic filter rules:
+    [ {"search":"(error|failure|success)"} ]
 
   </pre>
 
