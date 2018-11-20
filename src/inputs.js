@@ -7,6 +7,7 @@ export const addDefaultsToInputs = i => ({
   ,debounce:25
   ,type:'text'
   ,updateEvent: 'change'
+  ,targetPath: ['target','value']
   ,...i
 });
  
@@ -19,7 +20,7 @@ export const getDomInputStreams = (sources,initialSettings) =>
           .select('#' + input.id)
           .events(input.updateEvent)
           .compose(debounce(input.debounce))
-          .map(path(['target','value']))
+          .map(path(input.targetPath))
           .startWith(initialSettings[input.id] || ''),
       ]
     )

@@ -1,4 +1,5 @@
 import {pipe,map,is} from 'ramda';
+import {isAfter,isBefore} from 'date-fns';
 
 const addDefaultsToRules = r => ({
   nameRe:new RegExp(r.name || '.*', 'i')
@@ -43,6 +44,18 @@ const getRulesForDataset = rules => dataset =>
     .filter(r=>r.nameRe.test(dataset.name))
     .sort((a,b)=>(a.priority - b.priority));
 ;
+
+export const filterDatasetsByDate = ({startDate,endDate,filterByDate}) => datasets => {
+  if (!(filterByDate === 'true' || filterByDate === true )){return datasets;}  // not sure why a string here
+  return datasets.map(dataset => ({
+    name:dataset.name,
+    data: dataset.data.reduce(
+      ((acc,row) => 
+        (isBefore(row.date,startDate) || isAfter(row.date,endDate)) ? acc : acc.concat(row)
+      ), []
+    )
+  }));
+}
 
 const runRulesOnDataset = ({rules,fn}) => datasets => {
   if (rules.length === 0) {return datasets;}   // short circuit when no rules

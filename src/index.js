@@ -18,7 +18,7 @@ import {addDefaultsToRequest} from './requestMapper';
 import {addDefaultsToInputs, getDomInputStreams} from './inputs'
 import {combineByGroup, getResponse, toStreamWithAnyPromisesResolved} from './requests'
 import {objectToQueryString,queryStringToObject} from './utils/settings';
-import {addColors,filterDataRows} from './dataFilter';
+import {addColors,filterDataRows,filterDatasetsByDate} from './dataFilter';
 import {getFilesUnderFolder} from './filesFromFolder';
 
 const filterByString = require('./utils/regExpFilter')({textFn:prop('name'),reBuilder:'or'});
@@ -109,8 +109,9 @@ const requestGroups = [
 
 const inputs = [
   {id:'filter', displayName:'filter chart' ,updateEvent: 'change',debounce:500, style:{width:"30%"}}
-  ,{id:'startDate',attrs: {type:'date'}}
-  ,{id:'endDate',attrs: {type:'date'}}
+  ,{id:'startDate',debounce:500,attrs: {type:'datetime-local',step:'.001'}}
+  ,{id:'endDate',debounce:500,attrs: {type:'datetime-local',step:'.001'}}
+  ,{id:'filterByDate', targetPath: ['target','checked'], attrs:{type:'checkbox'}}
   ,{id:'requests',displayName:'requests',tag:'textarea',style:{
     "white-space":"pre-wrap",   // sorts out enter key behaviour
     "display":'block',
@@ -168,6 +169,7 @@ const main = ({initialSettings,requestGroups}) => sources => {
               id,
               placeholder:displayName,
               value,
+              checked: ((value === true || value === 'true') && attrs.type === 'checkbox' ? 'checked' : undefined),
               ...attrs
             }
           },value)
@@ -184,10 +186,14 @@ const main = ({initialSettings,requestGroups}) => sources => {
       domInputs.filter$,
       domInputs.colorRules$,
       domInputs.filterRules$,
-      chartData$
-    ).map(([filter,colorRules,filterRules,data]) =>
+      chartData$,
+      domInputs.startDate$,
+      domInputs.endDate$,
+      domInputs.filterByDate$
+    ).map(([filter,colorRules,filterRules,data,startDate,endDate,filterByDate]) =>
         pipe(
           filterByString(filter)   // filter the chart rows 
+          ,filterDatasetsByDate({startDate,endDate,filterByDate})   // filter the chart rows 
           ,filterDataRows(filterRules)    //filter the event within rows
           ,addColors(colorRules)
         )(data)
