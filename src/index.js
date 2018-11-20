@@ -2,10 +2,11 @@ import xs from 'xstream';
 import debounce from 'xstream/extra/debounce';
 //import throttle from 'xstream/extra/throttle';
 import {run} from '@cycle/run';
-import {makeDOMDriver, h,div} from '@cycle/dom';
+import {makeDOMDriver,h} from '@cycle/dom';
 import {makeHTTPDriver} from '@cycle/http';
 import {makeHistoryDriver} from '@cycle/history';
-//import Snabbdom from 'snabbdom-pragma';    //could prob get rid of JSX
+//import {h} from 'snabbdom';    //could prob get rid of JSX
+import Snabbdom from 'snabbdom-pragma';    //could prob get rid of JSX
 import 'babel-polyfill';    // needed for async 
 
 import {format} from 'date-fns'
@@ -25,6 +26,13 @@ const filterByString = require('./utils/regExpFilter')({textFn:prop('name'),reBu
 // for debugging pipes: debug('test')
 const debug = label => tap(x=>console.log(label,x));
 
+/*const h2 = (el, attrs, children) => {
+  const El = el;
+  return (
+    <El {...attrs}>{children? children : ''}</El>
+  );
+}*/
+
 /*
 const {runSql,close} = require('./utils/runSql.test');
 runSql('select * from bpconfig')
@@ -34,11 +42,12 @@ runSql('select * from bpconfig')
 
 /*
 - improve performance:
-  - get rid of dependencies (moment, jsx, superagent (should be http driver?), babel poyfill / async?)
+  - get rid of dependencies (moment, jsx, superagent (use http driver, which uses it anyway?), babel poyfill / async?)
   - add timeouts / promises (esp for parsers)
   - use transducers in parsers
-  - allow filtering by date range
+  - allow filtering by date range (done)
 - improve interface
+  - allow relative dates (relative to now) : var parse = require('parse-duration')
   - color / filter controls (partially done)
   - request / log file selector control (partially done)
     - easy to make list by parsing the logs folder 
@@ -48,8 +57,9 @@ runSql('select * from bpconfig')
       return the parsed files combined (in a promise, like a zip - use same code a zip?)
        - just do a name / data pair for each file, allowing the grouping to merge if nec 
         - can match the names as base of url will be same 
+        - also date filter could prop work on filenames in some cases (e.g. get date written from filename or server, then discard if before start / after start of another file that is after end)
   - allow to load logs dynamically (i.e include requests in the main loop as stream / control)
-- database integration: 
+- database integration: (not going to work - use server / csv files etc)
   - run query to get timeline (e.g. on SQL profiler output)
   - run SQL derived from logs (including profiler output)
   - could also save arbitrary queries run at certain points in time (to see how values vary over time)
@@ -108,11 +118,16 @@ const requestGroups = [
 ];
 
 const inputs = [
-  {id:'filter', displayName:'filter chart' ,updateEvent: 'change',debounce:500, style:{width:"30%"}}
-  ,{id:'startDate',debounce:500,attrs: {type:'datetime-local',step:'.001'}}
-  ,{id:'endDate',debounce:500,attrs: {type:'datetime-local',step:'.001'}}
-  ,{id:'filterByDate', targetPath: ['target','checked'], attrs:{type:'checkbox'}}
-  ,{id:'requests',displayName:'requests',tag:'textarea',style:{
+  {id:'reloadChart', attrs:{type:'button',value:'Reload'}}
+  ,{id:'filter', displayName:'filter chart rows' ,updateEvent: 'change',debounce:500, style:{width:"30%"}}
+  ,{id:'startDate',displayName:'Start date',debounce:500,attrs: {type:'datetime-local',step:'.001'}}
+  ,{id:'endDate',displayName:'End date',debounce:500,attrs: {type:'datetime-local',step:'.001'}}
+  ,{id:'startFromNow',debounce:500,attrs: {type:'text'}}
+  ,{id:'endFromNow',debounce:500,attrs: {type:'text'}}
+  ,{id:'filterByDate',displayName:'Filter by date', attrs:{type:'checkbox'}}
+  ,{id:'requests',displayName:'requests',tag:'textarea',spanStyle: {
+    "display":"block"
+  }, style:{
     "white-space":"pre-wrap",   // sorts out enter key behaviour
     "display":'block',
     width: "600px",
@@ -120,16 +135,18 @@ const inputs = [
   }}
   ,{id:'colorRules',displayName:'Color Rules',tag:'textarea',style:{
     "white-space":"pre-wrap",   // sorts out enter key behaviour
-   // "display":'block',
+    // "display":'block',
     width: "300px",
     height: "40px",
   }}
+ // ,{id:'enableColors', attrs:{type:'checkbox'}}
   ,{id:'filterRules',displayName:'Filter Rules',tag:'textarea',style:{
     "white-space":"pre-wrap",   // sorts out enter key behaviour
-   // "display":'block',
+    // "display":'block',
     width: "300px",
     height: "40px",
   }}
+  //,{id:'enableFilter', attrs:{type:'checkbox'}}
 ].map(addDefaultsToInputs);
 
 
@@ -159,20 +176,23 @@ const main = ({initialSettings,requestGroups}) => sources => {
     (spec, value) => ({...spec,value}), specs, values
   );
   const domLayout = inputSpecs => inputValues => 
-    div(
-      '.controls',{},
+    h(
+      'div.controls',{},
       inputDetails(inputSpecs,inputValues)
-        .map(({style,id,displayName,value,tag,attrs}) =>
-          h(tag || 'input',{ 
-            style,
-            attrs:{
-              id,
-              placeholder:displayName,
-              value,
-              checked: ((value === true || value === 'true') && attrs.type === 'checkbox' ? 'checked' : undefined),
-              ...attrs
-            }
-          },value)
+        .map(({style,id,displayName,value,tag,attrs,spanStyle}) =>
+          h('span.control',{spanStyle},[
+            //h('label',{},[displayName]), 
+            h(tag || 'input',{ 
+              style,
+              attrs:{
+                id,
+                placeholder:displayName,
+                value,
+                checked: ((value === true || value === 'true') && attrs.type === 'checkbox' ? 'checked' : undefined),
+                ...attrs
+              }
+            },value),
+          ])
         )
     )
   ;

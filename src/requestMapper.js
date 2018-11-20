@@ -15,16 +15,22 @@ const isInNameDataFormat = d => (
   d[0] && Object.keys(d[0]).length == 2 && 
   d[0].name && d[0].data
 );
+const makeSureIsPromise = x=>Promise.resolve(x);
 export const logToData = name => data => 
-  Promise.resolve(data)
+  makeSureIsPromise(data)      // incoming data might be a promise or not: so enforce promise to be sure
     .then(data => isInNameDataFormat(data) ? data : {name,data});
 //const tapText = pipe(tap(x=>console.log(x)),prop('text'))
 
+const parser = ({filename}) => {
+  const r = requestPropsByType.find(rs=>stringMatchesRegExp(rs.re,filename));
+  return  (r && r.parser) ? r.parser : parseBasic; 
+} 
 //depending on the ending of the URL, get additional properties for request
 // should prop use a regexp here?
 const requestPropsByType = [
   {
     re:'\\.json$',
+    parser: JSON.parse,
     props: req => ({
       transforms: [
         prop('text'),
@@ -35,6 +41,7 @@ const requestPropsByType = [
   },
   {
     re:'\\.csv$',
+    parser: parseCsv,
     props: req => ({
       transforms: [
         prop('text'),
@@ -45,6 +52,7 @@ const requestPropsByType = [
   },
   {
     re:'\\.ltf$',
+    parser: parseLtf,
     props: req => ({
       transforms: [
         prop('text'),
@@ -55,6 +63,7 @@ const requestPropsByType = [
   },
   { 
     re:'SpeechSourceMeasureProvider\\.log$',
+    parser: parseSpeechLog,
     props: req => ({
       transforms:[
         prop('text')
@@ -65,6 +74,7 @@ const requestPropsByType = [
   },
   { 
     re:'\\.log(\\.\d+)?$',
+    parser: parseLog,
     props: req => ({
       transforms:[
         prop('text'),
@@ -76,12 +86,13 @@ const requestPropsByType = [
   },
   {
     re:'\\.zip$',
+    //parser: '???',   // probably don't want a parser, as the files don't get parsed (only parse once have actual file, which isn't a zip)
     props: req => ({
       responseType: 'blob'
       ,transforms: [
         prop('body'),
         getZip({transform:pipe(
-          parseLog,
+          parseLog,     // need to detect which parser to run.... recurse through this?
           logToData(req.url),
         )}),       // returns a promise
       ] 
@@ -139,6 +150,8 @@ const stringMatchesRegExp = (reString, str) => {
 }
 const getExtensionFromUrl = url => url.replace(/^.*?\.(.*?)(\.[0-9]+)?$/,"$1");
 
+// parser determination needs to be done dynamically - e.g. const parse ({specifyParser,filename},file) => parsedData
+// as may want to parse a different type to what was originally put in, as in folders and zip files.
 export const addDefaultsToRequest = req => { 
   req = is(String, req) ? {url:req} : req;   // allow just putting in a url as string instead of object
   return ({
