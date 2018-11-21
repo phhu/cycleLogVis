@@ -3,14 +3,16 @@
 import {pipe,omit,prop,map,find,is} from 'ramda';
 
 // this could probably be generalised a bit... e.g. read folder and import as parsers object 
-const parseLog = require('./parsers/parseLog')({includeLine:false});
-const parseSpeechLog = require('./parsers/parseSpeechLog')({includeLine:false});
-const parseLtf = require('./parsers/parseLtf')({includeLine:false});
-const parseBasic = require('./parsers/parseBasic')({includeLine:true});
-const parseCsv = require('./parsers/parseCsv')({});
-const {bpxServerXmlToTimeline} = require('./parsers/parseBPXserverXML');
+const parsers = {
+  log : require('./parsers/parseLog')({includeLine:false}),
+  speechLog: require('./parsers/parseSpeechLog')({includeLine:false}),
+  ltf: require('./parsers/parseLtf')({includeLine:false}),
+  basic: require('./parsers/parseBasic')({includeLine:true}),
+  csv: require('./parsers/parseCsv')({}),
+  bpxServerXmlToTimeline: require('./parsers/parseBPXserverXML'),
+};
 
-const getZip = require('./utils/getZip');
+const {getZip} = require('./utils/getZip');
 const isInNameDataFormat = d => (
   d[0] && Object.keys(d[0]).length == 2 && 
   d[0].name && d[0].data
@@ -21,9 +23,9 @@ export const logToData = name => data =>
     .then(data => isInNameDataFormat(data) ? data : {name,data});
 //const tapText = pipe(tap(x=>console.log(x)),prop('text'))
 
-const parser = ({filename}) => {
+export const parser = (filename) => {
   const r = requestPropsByType.find(rs=>stringMatchesRegExp(rs.re,filename));
-  return  (r && r.parser) ? r.parser : parseBasic; 
+  return  (r && r.parser) ? r.parser : parsers.basic; 
 } 
 //depending on the ending of the URL, get additional properties for request
 // should prop use a regexp here?
@@ -34,51 +36,51 @@ const requestPropsByType = [
     props: req => ({
       transforms: [
         prop('text'),
-        JSON.parse,
+        parser(req.url),
         logToData(req.url),
       ]
     })
   },
   {
     re:'\\.csv$',
-    parser: parseCsv,
+    parser: parsers.csv,
     props: req => ({
       transforms: [
         prop('text'),
-        parseCsv,
+        parser(req.url),
         logToData(req.url),
       ]
     })
   },
   {
-    re:'\\.ltf$',
-    parser: parseLtf,
+    re:'\\.(ltf|tmp)$',
+    parser: parsers.ltf,
     props: req => ({
       transforms: [
         prop('text'),
-        parseLtf,
+        parser(req.url),
         logToData(req.url),
       ]
     })
   },
   { 
     re:'SpeechSourceMeasureProvider\\.log$',
-    parser: parseSpeechLog,
+    parser: parsers.speechLog,
     props: req => ({
       transforms:[
         prop('text')
-        ,parseSpeechLog
+        ,parser(req.url)
         ,logToData(req.url),
       ]
     })
   },
   { 
     re:'\\.log(\\.\d+)?$',
-    parser: parseLog,
+    parser: parsers.log,
     props: req => ({
       transforms:[
         prop('text'),
-        parseLog,
+        parser(req.url),
         map(omit(['weblogicName','component'])),   // 'logger'   'thread',
         logToData(req.url),
       ]
@@ -92,7 +94,7 @@ const requestPropsByType = [
       ,transforms: [
         prop('body'),
         getZip({transform:pipe(
-          parseLog,     // need to detect which parser to run.... recurse through this?
+          //parseLog,     // need to detect which parser to run.... to this inside zip module
           logToData(req.url),
         )}),       // returns a promise
       ] 
@@ -100,17 +102,18 @@ const requestPropsByType = [
   },
   {
     re: '\\.xml$',
+    parser: parsers.bpxServerXmlToTimeline,
     props: req => ({
       //responseType: 'blob'
       transforms: [
         prop('text'),
-        bpxServerXmlToTimeline({}),
+        parser(req.url),
         // body => ([{
         //   date:'2018-10-24'
         //   ,text:'testFAKE XML'
         //   ,body
         // }]),
-        // logToData(req.url),
+        logToData(req.url),
       ] 
     })
   },
@@ -136,7 +139,7 @@ const requestPropsByType = [
       //responseType: 'blob'
       transforms: [
         prop('text'),
-        parseBasic,
+        parsers.basic,
         logToData(req.url),
       ] 
     })

@@ -1,5 +1,6 @@
 import xs from 'xstream';
 import debounce from 'xstream/extra/debounce';
+import sampleCombine from 'xstream/extra/sampleCombine';
 //import throttle from 'xstream/extra/throttle';
 import {run} from '@cycle/run';
 import {makeDOMDriver,h} from '@cycle/dom';
@@ -9,9 +10,9 @@ import {makeHistoryDriver} from '@cycle/history';
 import Snabbdom from 'snabbdom-pragma';    //could prob get rid of JSX
 import 'babel-polyfill';    // needed for async 
 
-import {format} from 'date-fns'
+import {format,addMilliseconds} from 'date-fns'
 import {prop,propOr,pipe,map,tap,omit,replace,values,
-  unnest,zipWith,zipObj,pluck,trim,split} from 'ramda';
+  unnest,zipWith,zipObj,pluck,trim,split,evolve} from 'ramda';
 
 import {makeEventDropDriver} from './drivers/eventDropDriver';
 import {makeDataTablesDriver} from './drivers/dataTablesDriver';
@@ -22,6 +23,7 @@ import {objectToQueryString,queryStringToObject} from './utils/settings';
 import {addColors,filterDataRows,filterDatasetsByDate} from './dataFilter';
 import {getFilesUnderFolder} from './filesFromFolder';
 
+const parseDuration = require('parse-duration');
 const filterByString = require('./utils/regExpFilter')({textFn:prop('name'),reBuilder:'or'});
 // for debugging pipes: debug('test')
 const debug = label => tap(x=>console.log(label,x));
@@ -64,8 +66,20 @@ runSql('select * from bpconfig')
   - run SQL derived from logs (including profiler output)
   - could also save arbitrary queries run at certain points in time (to see how values vary over time)
 */
+const formatDate = d=> format(d,'YYYY-MM-DDTHH:mm:ss.SSS') ;
+const dateFromNow = diffInMs => formatDate(addMilliseconds( new Date(),diffInMs)) ;
+const checkForDuration = d => 
+   (/^[\+\- ].*/.test(d)) ? dateFromNow(parseDuration(d)) : formatDate(d);
 
-const initialSettings = queryStringToObject(window.location.search);
+const initialSettings = pipe(
+  queryStringToObject
+  ,evolve({
+    //colorRules: s=>'test',
+    startDate: checkForDuration ,
+    endDate: checkForDuration,
+  })
+)(window.location.search);
+
 console.log("initial settings",initialSettings);
 const defaultRequest = 'data/timeline.json';
 const getRequestsFromInitialSettings = 
@@ -100,7 +114,7 @@ const folderRequests = [
  // `http://localhost:8081${ISLOGS}/Plugin_RIExtender/`
 ];
 
-const mergeRequests = async (fileRequests,folderRequests) => {
+/*const mergeRequests = async (fileRequests,folderRequests) => {
   let pp;
   const getFiles = folderRequests.map(getFilesUnderFolder);
   try {
@@ -109,7 +123,7 @@ const mergeRequests = async (fileRequests,folderRequests) => {
     console.error("error getting folders" ,e);
   }
   return fileRequests.concat(...pp).map(addDefaultsToRequest);
-}
+}*/
 
 const requestGroups = [
   {name:'lugin_RIExtender',re: /\/Plugin_RIExtender\//i}
@@ -118,12 +132,12 @@ const requestGroups = [
 ];
 
 const inputs = [
-  {id:'reloadChart', attrs:{type:'button',value:'Reload'}}
+  {id:'reload', attrs:{type:'button',value:'Reload',accesskey:"r"}}
   ,{id:'filter', displayName:'filter chart rows' ,updateEvent: 'change',debounce:500, style:{width:"30%"}}
   ,{id:'startDate',displayName:'Start date',debounce:500,attrs: {type:'datetime-local',step:'.001'}}
   ,{id:'endDate',displayName:'End date',debounce:500,attrs: {type:'datetime-local',step:'.001'}}
-  ,{id:'startFromNow',debounce:500,attrs: {type:'text'}}
-  ,{id:'endFromNow',debounce:500,attrs: {type:'text'}}
+  //,{id:'startFromNow',debounce:500,attrs: {type:'text'}}
+  //,{id:'endFromNow',debounce:500,attrs: {type:'text'}}
   ,{id:'filterByDate',displayName:'Filter by date', attrs:{type:'checkbox'}}
   ,{id:'requests',displayName:'requests',tag:'textarea',spanStyle: {
     "display":"block"
@@ -148,8 +162,6 @@ const inputs = [
   }}
   //,{id:'enableFilter', attrs:{type:'checkbox'}}
 ].map(addDefaultsToInputs);
-
-
 
 const main = ({initialSettings,requestGroups}) => sources => {
   
@@ -188,7 +200,7 @@ const main = ({initialSettings,requestGroups}) => sources => {
                 id,
                 placeholder:displayName,
                 value,
-                checked: ((value === true || value === 'true') && attrs.type === 'checkbox' ? 'checked' : undefined),
+                checked: ((value === true || value === 'true') && attrs && attrs.type === 'checkbox' ? 'checked' : undefined),
                 ...attrs
               }
             },value),
@@ -196,21 +208,25 @@ const main = ({initialSettings,requestGroups}) => sources => {
         )
     )
   ;
+  
+  const reload$ = domInputs.reload$
+  .compose(sampleCombine(...values(domInputs)))
+  .map(x=>x.slice(1))  // get rid of initial reload input (duplicate)
+  //.debug("reload$")
+  .startWith(true);
 
   //model  
   return {
     HTTP: httpRequest$
-    ,DOM: xs.combine(...values(domInputs))
+    ,DOM: reload$
       .map(domLayout(inputs))
+    /*,DOM: xs.combine(...values(domInputs))
+      .map(domLayout(inputs))*/
     ,EVENT_DROP: xs.combine(
-      domInputs.filter$,
-      domInputs.colorRules$,
-      domInputs.filterRules$,
       chartData$,
-      domInputs.startDate$,
-      domInputs.endDate$,
-      domInputs.filterByDate$
-    ).map(([filter,colorRules,filterRules,data,startDate,endDate,filterByDate]) =>
+      reload$
+    ) //.debug('event$')
+    .map(([data,[reload,filter,startDate,endDate, filterByDate, requests , colorRules,filterRules]]) =>
         pipe(
           filterByString(filter)   // filter the chart rows 
           ,filterDatasetsByDate({startDate,endDate,filterByDate})   // filter the chart rows 
@@ -230,6 +246,7 @@ const main = ({initialSettings,requestGroups}) => sources => {
     ,history: xs.combine(...values(domInputs))
       .compose(debounce(500))
       .map(zipObj(pluck('id',inputs)))
+      .map(omit(['reload']))
       .map(objectToQueryString)
       //.debug("historyOut")
   };

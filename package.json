@@ -31,6 +31,7 @@
     "moment": "^2.22.2",
     "msnodesqlv8": "^0.6.9",
     "mssql": "^4.2.3",
+    "parse-duration": "^0.1.1",
     "qs": "^6.5.2",
     "snabbdom-pragma": "^2.7.0",
     "superagent": "^4.0.0-beta.5",

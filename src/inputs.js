@@ -4,9 +4,11 @@ import {pipe,map,path,fromPairs} from 'ramda';
 
 export const addDefaultsToInputs = i => ({
   displayName:i.id
-  ,debounce:25
+  ,debounce:0
   //,type:'text'
-  ,updateEvent: 'change'     // might be possible to use change while preventing default
+  ,updateEvent:
+    (i.attrs && i.attrs.type === 'button' )   ? 'click' :
+    'input'    
   ,targetPath: 
     (i.attrs && i.attrs.type === 'checkbox' ) ? path(['target','checked']) : 
     (i.attrs && i.attrs.type === 'button' )   ? (e=> true) :    
@@ -22,7 +24,7 @@ export const getDomInputStreams = (sources,initialSettings) =>
         sources.DOM
           .select('#' + input.id)
           .events(input.updateEvent)
-          .compose(debounce(input.debounce))
+          //.compose(debounce(input.debounce))
           .map(input.targetPath)
           .debug("input: " + input.id)
           .startWith(initialSettings[input.id] || ''),
