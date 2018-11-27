@@ -26,7 +26,7 @@ export const getDomInputStreams = (sources,initialSettings) =>
           .events(input.updateEvent)
           //.compose(debounce(input.debounce))
           .map(input.targetPath)
-          .debug("input: " + input.id)
+          //.debug("input: " + input.id)
           .startWith(initialSettings[input.id] || ''),
       ]
     )

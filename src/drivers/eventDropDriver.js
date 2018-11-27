@@ -6,7 +6,7 @@ import xs from 'xstream';
 import eventDrops from '../../../../Documents/GitHub/eventDrops/dist';
 import './style.css';
 
-import {clone} from 'ramda';
+//import {clone} from 'ramda';
 import {parse as toDate, startOfToday, startOfTomorrow} from 'date-fns';
 
 const tooltip = d3
@@ -100,7 +100,7 @@ var update = ()=>{};    // initial function does nothing - only once stream set 
 const updateChart = (opts = {}) => data => {
   //const chartData = clone(data);    // it gets mutated.... so clone it??
   const chartData = data;
-  console.log("data in eventDropDriver",chartData);
+  console.log("eventDropDriver.updateChart:",chartData);
   setTimeout(()=>{
     d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
     d3.select(opts.tag).data([chartData]).call(chart(opts)); 
