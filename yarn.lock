@@ -1587,7 +1587,7 @@ combined-stream@^1.0.6:
   dependencies:
     delayed-stream "~1.0.0"
 
-commander@2, commander@^2.8.1:
+commander@2, commander@^2.6.0, commander@^2.8.1:
   version "2.19.0"
   resolved "https://registry.yarnpkg.com/commander/-/commander-2.19.0.tgz#f6198aa84e5b83c46054b94ddedbfed5ee9ff12a"
 
@@ -5310,6 +5310,12 @@ promise-inflight@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/promise-inflight/-/promise-inflight-1.0.1.tgz#98472870bf228132fcbdd868129bad12c3c029e3"
 
+proper-url-join@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/proper-url-join/-/proper-url-join-1.2.0.tgz#4c87d5e5a00e576963226f5a4db09a4eafe419c7"
+  dependencies:
+    query-string "^5.0.1"
+
 proto-list@~1.2.1:
   version "1.2.4"
   resolved "https://registry.yarnpkg.com/proto-list/-/proto-list-1.2.4.tgz#212d5bfe1318306a420f6402b8e26ff39647a849"
@@ -5618,6 +5624,13 @@ regjsparser@^0.3.0:
   resolved "https://registry.yarnpkg.com/regjsparser/-/regjsparser-0.3.0.tgz#3c326da7fcfd69fa0d332575a41c8c0cdf588c96"
   dependencies:
     jsesc "~0.5.0"
+
+relaxed-json@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/relaxed-json/-/relaxed-json-1.0.1.tgz#7c8d4aa2f095704cd020e32e8099bcae103f0bd4"
+  dependencies:
+    chalk "^1.0.0"
+    commander "^2.6.0"
 
 remove-trailing-separator@^1.0.1:
   version "1.1.0"

@@ -12,7 +12,7 @@ import 'babel-polyfill';    // needed for async
 
 import {format,addMilliseconds} from 'date-fns'
 import {prop,propOr,pipe,map,tap,omit,replace,values,
-  unnest,zipWith,zipObj,pluck,trim,split,evolve} from 'ramda';
+  unnest,zipWith,zipObj,pluck,trim,split,evolve,reject} from 'ramda';
 
 import {makeEventDropDriver} from './drivers/eventDropDriver';
 import {makeDataTablesDriver} from './drivers/dataTablesDriver';
@@ -24,6 +24,7 @@ import {addColors,filterDataRows,filterDatasetsByDate} from './dataFilter';
 import {getFilesUnderFolder} from './filesFromFolder';
 
 const parseDuration = require('parse-duration');
+const urlJoin = require('proper-url-join');
 const filterByString = require('./utils/regExpFilter')({textFn:prop('name'),reBuilder:'or'});
 // for debugging pipes: debug('test')
 const debug = label => tap(x=>console.log(label,x));
@@ -49,7 +50,9 @@ runSql('select * from bpconfig')
   - use transducers in parsers
   - allow filtering by date range (done)
 - improve interface
-  - allow relative dates (relative to now) : var parse = require('parse-duration')
+  - allow to fetch date range from chart
+    -modify eventdrop driver: use zoom event 
+  - allow relative dates (relative to now) : var parse = require('parse-duration') - (partially done)
   - color / filter controls (partially done)
   - request / log file selector control (partially done)
     - easy to make list by parsing the logs folder 
@@ -69,7 +72,7 @@ runSql('select * from bpconfig')
 const formatDate = d=> format(d,'YYYY-MM-DDTHH:mm:ss.SSS') ;
 const dateFromNow = diffInMs => formatDate(addMilliseconds( new Date(),diffInMs)) ;
 const checkForDuration = d => 
-   (/^[\+\- ].*/.test(d)) ? dateFromNow(parseDuration(d)) : formatDate(d);
+   (/^[\+\- ].*/.test(d)) ? dateFromNow(parseDuration(d)) : formatDate(d);    // + encodes space... for convenience allow space to start a positive duration
 
 const initialSettings = pipe(
   queryStringToObject
@@ -82,15 +85,15 @@ const initialSettings = pipe(
 
 console.log("initial settings",initialSettings);
 const defaultRequest = 'data/timeline.json';
-const getRequestsFromInitialSettings = 
-  pipe(
+const getRequestsFromInitialSettings = initialSettings => {
+  return pipe(
     propOr(defaultRequest,'requests')
     ,replace(/^\s*$/,defaultRequest)
     ,trim
     ,split(/\s+/)      // do grouping on new lnes? 
-    ,map(addDefaultsToRequest)
-  )
-;
+    ,map(addDefaultsToRequest(initialSettings))
+  )(initialSettings);
+};
 
 const ISLOGS = '/logs/Integration%20Server';
 const FE = '/software/FusionExchange';
@@ -139,6 +142,7 @@ const inputs = [
   //,{id:'startFromNow',debounce:500,attrs: {type:'text'}}
   //,{id:'endFromNow',debounce:500,attrs: {type:'text'}}
   ,{id:'filterByDate',displayName:'Filter by date', attrs:{type:'checkbox'}}
+  ,{id:'requestBase',displayName:'Request URL base',attrs:{'size':'50'}}
   ,{id:'requests',displayName:'requests',tag:'textarea',spanStyle: {
     "display":"block"
   }, style:{
@@ -160,6 +164,7 @@ const inputs = [
     width: "300px",
     height: "40px",
   }}
+  ,{id:'datesFromChart', attrs:{type:'button',value:'Dates from chart'}}
   //,{id:'enableFilter', attrs:{type:'checkbox'}}
 ].map(addDefaultsToInputs);
 
@@ -212,9 +217,9 @@ const main = ({initialSettings,requestGroups}) => sources => {
   const reload$ = domInputs.reload$
   .compose(sampleCombine(...values(domInputs)))
   .map(x=>x.slice(1))  // get rid of initial reload input (duplicate)
-  //.debug("reload$")
-  .startWith(true);
+  .startWith(true)
 
+  const inputValuesToObj = zipObj(pluck('id',inputs));
   //model  
   return {
     HTTP: httpRequest$
@@ -226,14 +231,16 @@ const main = ({initialSettings,requestGroups}) => sources => {
       chartData$,
       reload$
     ) //.debug('event$')
-    .map(([data,[reload,filter,startDate,endDate, filterByDate, requests , colorRules,filterRules]]) =>
+    .map(([data,inputValues])=>[data,inputValuesToObj(inputValues)])
+    //.debug("eventDropInputs")
+    .map(([data,{filter,startDate,endDate,filterByDate,filterRules,colorRules}]) =>
         pipe(
           filterByString(filter)   // filter the chart rows 
           ,filterDatasetsByDate({startDate,endDate,filterByDate})   // filter the chart rows 
           ,filterDataRows(filterRules)    //filter the event within rows
           ,addColors(colorRules)
         )(data)
-      )    
+      )
       //.debug("chartDataFiltered and colored")
     ,DATATABLE: clickedEventDropData$
       .map(pipe(
@@ -245,8 +252,9 @@ const main = ({initialSettings,requestGroups}) => sources => {
       ))
     ,history: xs.combine(...values(domInputs))
       .compose(debounce(500))
-      .map(zipObj(pluck('id',inputs)))
+      .map(inputValuesToObj)
       .map(omit(['reload']))
+      .map(reject(x=>x===''||x===false|| x==="false" ))   // matching string false a bad idea
       .map(objectToQueryString)
       //.debug("historyOut")
   };

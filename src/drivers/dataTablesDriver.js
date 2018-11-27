@@ -25,10 +25,8 @@ const preRenderer = (data,type,row,meta) =>
 const staticColumnDefs = {
   index: {width:100}
   ,date: {render:(data,type,row) => `<pre>${data}</pre>`}
-  ,message: {
-    width:'50%'
-    ,render:preRenderer
-  }
+  ,message: {width:'50%' ,render:preRenderer}
+  ,text: {width:'50%' ,render:preRenderer}
 };
 const getColumnsFromFirstRowOfData = pipe(
   head,
@@ -60,7 +58,7 @@ const setupDataTable = ({
   `);
   
   const cData = cleanData(data);
-  console.log("Setting up table: data:", data);
+  console.log("datatableDriver.setupDataTable", data);
   datatable = $('#'+tableId).DataTable({
     data: cData
     //,paging: false

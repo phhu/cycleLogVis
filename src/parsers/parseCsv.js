@@ -16,12 +16,12 @@ const parse = opts => csvStr => csv({
   //output: "csv" 
 })
 .fromString(csvStr)
-.then((json)=>{console.log("pre mapping",json);return json})
+//.then((json)=>{console.log("pre mapping",json);return json})
 .then(pipe(
   map(mapping),
   map(pick(['date','timestamp','name',"database_name",'duration','sql_text','message'])),     //temporary
 ))
-.then((json)=>{console.log("post mapping", json);return json})
+//.then((json)=>{console.log("post mapping", json);return json})
 .catch(e=>console.error("error parsing CSV",e))
 
 module.exports = parse;

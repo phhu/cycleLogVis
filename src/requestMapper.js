@@ -12,6 +12,8 @@ const parsers = {
   bpxServerXmlToTimeline: require('./parsers/parseBPXserverXML'),
 };
 
+const {parseSqlFromMessage} = require('./parsers/parseSqlFromMessage');
+
 const {getZip} = require('./utils/getZip');
 const isInNameDataFormat = d => (
   d[0] && Object.keys(d[0]).length == 2 && 
@@ -23,8 +25,9 @@ export const logToData = name => data =>
     .then(data => isInNameDataFormat(data) ? data : {name,data});
 //const tapText = pipe(tap(x=>console.log(x)),prop('text'))
 
-export const parser = (filename) => {
-  const r = requestPropsByType.find(rs=>stringMatchesRegExp(rs.re,filename));
+export const parser = (req) => {
+  console.log("parserReq",req);      //might be best to determine parser dynamically - or make it possible to do this - when have data and response details (mine type etc)
+  const r = requestPropsByType.find(rs=>stringMatchesRegExp(rs.re,req.url));
   return  (r && r.parser) ? r.parser : parsers.basic; 
 } 
 //depending on the ending of the URL, get additional properties for request
@@ -36,7 +39,7 @@ const requestPropsByType = [
     props: req => ({
       transforms: [
         prop('text'),
-        parser(req.url),
+        parser(req),
         logToData(req.url),
       ]
     })
@@ -47,7 +50,7 @@ const requestPropsByType = [
     props: req => ({
       transforms: [
         prop('text'),
-        parser(req.url),
+        parser(req),
         logToData(req.url),
       ]
     })
@@ -58,7 +61,7 @@ const requestPropsByType = [
     props: req => ({
       transforms: [
         prop('text'),
-        parser(req.url),
+        parser(req),
         logToData(req.url),
       ]
     })
@@ -69,7 +72,7 @@ const requestPropsByType = [
     props: req => ({
       transforms:[
         prop('text')
-        ,parser(req.url)
+        ,parser(req)
         ,logToData(req.url),
       ]
     })
@@ -80,8 +83,9 @@ const requestPropsByType = [
     props: req => ({
       transforms:[
         prop('text'),
-        parser(req.url),
+        parser(req),
         map(omit(['weblogicName','component'])),   // 'logger'   'thread',
+        map(parseSqlFromMessage),
         logToData(req.url),
       ]
     })
@@ -107,7 +111,7 @@ const requestPropsByType = [
       //responseType: 'blob'
       transforms: [
         prop('text'),
-        parser(req.url),
+        parser(req),
         // body => ([{
         //   date:'2018-10-24'
         //   ,text:'testFAKE XML'
@@ -155,19 +159,19 @@ const getExtensionFromUrl = url => url.replace(/^.*?\.(.*?)(\.[0-9]+)?$/,"$1");
 
 // parser determination needs to be done dynamically - e.g. const parse ({specifyParser,filename},file) => parsedData
 // as may want to parse a different type to what was originally put in, as in folders and zip files.
-export const addDefaultsToRequest = req => { 
+export const addDefaultsToRequest = initialSettings => req => { 
   req = is(String, req) ? {url:req} : req;   // allow just putting in a url as string instead of object
+  const rb = initialSettings.requestBase || '';
+  req.url = req.url.replace(/%s/g,rb);    // do substitution
   return ({
-    url: req.url         
-    ,category: req.url
-    //,type: getType(req.url)
-    //,...requestPropsByType[getExtensionFromUrl(req.url)](req)
+    category: req.url
     ,...(
       find(     // get matching props from req definition
         x=>stringMatchesRegExp(x.re,req.url)   
-        ,requestPropsByType)
+        ,requestPropsByType
+      )
       .props(req)
     )
-    ,...req
+    ,...req        
   })
 };
