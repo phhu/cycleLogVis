@@ -9,6 +9,7 @@ const parsers = {
   ltf: require('./parsers/parseLtf')({includeLine:false}),
   basic: require('./parsers/parseBasic')({includeLine:true}),
   csv: require('./parsers/parseCsv')({}),
+  javaConsoleLogXml: require('./parsers/parseJavaConsoleLogXml')({}),
   bpxServerXmlToTimeline: require('./parsers/parseBPXserverXML'),
 };
 
@@ -33,6 +34,17 @@ export const parser = (req) => {
 //depending on the ending of the URL, get additional properties for request
 // should prop use a regexp here?
 const requestPropsByType = [
+  {
+    re:'plugin\\d+\\.log$',
+    parser: parsers.javaConsoleLogXml ,
+    props: req => ({
+      transforms: [
+        prop('text'),
+        parser(req),
+        logToData(req.url),
+      ]
+    })
+  },
   {
     re:'\\.json$',
     parser: JSON.parse,

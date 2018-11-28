@@ -1,20 +1,13 @@
-function substituteParam (query,param){
-  return query.replace(/\?/,"'" + param.value  + "'");
-}
-function onlyUnique(value, index, self) { 
- return self.indexOf(value) === index;
-}			
+const isNumeric = n => (!isNaN(parseFloat(n)) && isFinite(n));
+const quote = s => isNumeric(s) ? s : `'${s}'`;
+const substituteParam = (query,param) => query.replace(/\?/,quote(param.value));
+const onlyUnique = (value, index, self) => self.indexOf(value) === index;	
 
 const queryRe = /^(?:Query stmt is *|ENTER: createRowset\(')([\s\S]*)(?:'[\d, ]*\)|, parameters are \{([\s\S]*)\}\s*)$/i;
 const paramRe = /(\d+)=Type is (.*?), Value is (.*?)(?=, \d+=Type|$)/g;
-//const checkRuleRe = /^Checking rule [\s\S]*/;
-//const exitTestRuleRe = /^EXIT:\stestRule[\s\S]*/;
-//const deliverNotificationsRe = /^ENTER: deliverNotifications [\s\S]*/;
 
 const processRow = row => { 
-  row.sql = null;
-  row.sqlWithParams = null;
-  let m = queryRe.exec(row.message);
+  const m = queryRe.exec(row.message);
   if (m !== null){
     row.sql=m[1];
     const params = [];
@@ -26,7 +19,10 @@ const processRow = row => {
         ,value:pp[3]
       });
     }
-    row.sqlWithParams = m[2] ? params.reduce((q,p)=>substituteParam(q,p),row.sql) : m[1];
+    row.sqlWithParams = m[2] ? params.reduce(substituteParam,row.sql) : m[1];
+  } else {
+    row.sql = null;
+    row.sqlWithParams = null;
   }
   return row;
 }     
