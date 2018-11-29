@@ -196,6 +196,7 @@ const main = ({initialSettings,requestGroups}) => sources => {
   ;
 
   // reload only emits when reload is pressed - sends all inputs 
+  // could probably have checkbox for dates from chart: update automatically (use debounce!)
   const reload$ = xs.merge(domInputs.reload$)
   .compose(sampleCombine(...values(domInputs)))
   .map(x=>x.slice(1))  // get rid of initial reload input (duplicate)
@@ -233,10 +234,10 @@ const main = ({initialSettings,requestGroups}) => sources => {
   //model  
   return {
     HTTP: httpRequest$
-    ,DOM: reload$
+    //,DOM: reload$
+    //  .map(domLayout(inputs))
+    ,DOM: xs.combine(...values(domInputs))
       .map(domLayout(inputs))
-    /*,DOM: xs.combine(...values(domInputs))
-      .map(domLayout(inputs))*/
     ,EVENT_DROP: xs.combine(
       chartData$,
       reload$

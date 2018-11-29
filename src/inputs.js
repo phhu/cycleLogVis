@@ -54,7 +54,7 @@ export const getDomInputStreams = (sources,initialSettings) => inputs => {
     .compose(sampleCombine(
       sources.EVENT_DROP
         .filter(e=>e.type==='ZOOM_END')
-        .compose(debounce(50))
+        .compose(debounce(250))
         .map(e=>e.payload)
     ))
     .map(x=>x[1]) 
