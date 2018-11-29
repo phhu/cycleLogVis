@@ -11,6 +11,7 @@ import Snabbdom from 'snabbdom-pragma';    //could prob get rid of JSX
 import 'babel-polyfill';    // needed for async 
 
 import {format,addMilliseconds} from 'date-fns'
+const moment = require('moment');
 import {prop,propOr,pipe,map,tap,omit,replace,values,
   unnest,zipWith,zipObj,pluck,trim,split,evolve,reject} from 'ramda';
 
@@ -25,7 +26,7 @@ import {getFilesUnderFolder} from './filesFromFolder';
 
 const parseDuration = require('parse-duration');
 const urlJoin = require('proper-url-join');
-const filterByString = require('./utils/regExpFilter')({textFn:prop('name'),reBuilder:'or'});
+const filterByString = require('./utils/regExpFilter');
 // for debugging pipes: debug('test')
 const debug = label => tap(x=>console.log(label,x));
 
@@ -65,9 +66,9 @@ runSql('select * from bpconfig')
         - also date filter could prop work on filenames in some cases (e.g. get date written from filename or server, then discard if before start / after start of another file that is after end)
   - allow to load logs dynamically (i.e include requests in the main loop as stream / control)
 - database integration: (not going to work - use server / csv files etc)
-  - run query to get timeline (e.g. on SQL profiler output)
-  - run SQL derived from logs (including profiler output)
-  - could also save arbitrary queries run at certain points in time (to see how values vary over time)
+  - run query to get timeline (e.g. on SQL profiler output) (working via server)
+  - run SQL derived from logs (including profiler output) (sql extracted, need to automate / facilitate running)
+  - could also save arbitrary queries run at certain points in time (to see how values vary over time) 
 */
 const formatDate = d=> format(d,'YYYY-MM-DDTHH:mm:ss.SSS') ;
 const dateFromNow = diffInMs => formatDate(addMilliseconds( new Date(),diffInMs)) ;
@@ -139,9 +140,12 @@ const inputs = [
   ,{id:'filter', displayName:'filter chart rows' ,updateEvent: 'change',debounce:500, style:{width:"30%"}}
   ,{id:'startDate',displayName:'Start date',debounce:500,attrs: {type:'datetime-local',step:'.001'}}
   ,{id:'endDate',displayName:'End date',debounce:500,attrs: {type:'datetime-local',step:'.001'}}
+  ,{id:'start',displayName:'Start dur',debounce:500}
+  ,{id:'end',displayName:'End dur',debounce:500}
   //,{id:'startFromNow',debounce:500,attrs: {type:'text'}}
   //,{id:'endFromNow',debounce:500,attrs: {type:'text'}}
   ,{id:'filterByDate',displayName:'Filter by date', attrs:{type:'checkbox'}}
+  ,{id:'relativeDates',displayName:'Use relative dates', attrs:{type:'checkbox'}}
   ,{id:'requestBase',displayName:'Request URL base',attrs:{'size':'50'}}
   ,{id:'requests',displayName:'requests',tag:'textarea',spanStyle: {
     "display":"block"
@@ -186,7 +190,16 @@ const main = ({initialSettings,requestGroups}) => sources => {
   ; 
   // event drop clicks
   const clickedEventDropData$ = sources.EVENT_DROP
-    .startWith([{date:Date(),text:'Click on a blob to view data'}]);
+    .filter(e=>e.type==='DROP_CLICK')
+    .map(e=>e.payload)
+    .startWith([{date:Date(),text:'Click on a blob to view data'}])
+  ;
+
+  // reload only emits when reload is pressed - sends all inputs 
+  const reload$ = xs.merge(domInputs.reload$)
+  .compose(sampleCombine(...values(domInputs)))
+  .map(x=>x.slice(1))  // get rid of initial reload input (duplicate)
+  .startWith(true)
 
   //view  
   const inputDetails = (specs,values) => zipWith(
@@ -198,7 +211,7 @@ const main = ({initialSettings,requestGroups}) => sources => {
       inputDetails(inputSpecs,inputValues)
         .map(({style,id,displayName,value,tag,attrs,spanStyle}) =>
           h('span.control',{spanStyle},[
-            //h('label',{},[displayName]), 
+            (attrs && attrs.type ==='checkbox') ? h('label',{},[displayName]) : h('span'), 
             h(tag || 'input',{ 
               style,
               attrs:{
@@ -214,10 +227,7 @@ const main = ({initialSettings,requestGroups}) => sources => {
     )
   ;
   
-  const reload$ = domInputs.reload$
-  .compose(sampleCombine(...values(domInputs)))
-  .map(x=>x.slice(1))  // get rid of initial reload input (duplicate)
-  .startWith(true)
+
 
   const inputValuesToObj = zipObj(pluck('id',inputs));
   //model  
@@ -235,7 +245,7 @@ const main = ({initialSettings,requestGroups}) => sources => {
     //.debug("eventDropInputs")
     .map(([data,{filter,startDate,endDate,filterByDate,filterRules,colorRules}]) =>
         pipe(
-          filterByString(filter)   // filter the chart rows 
+          filterByString({textFn:prop('name'),reBuilder:'or'})(filter)   // filter the chart rows 
           ,filterDatasetsByDate({startDate,endDate,filterByDate})   // filter the chart rows 
           ,filterDataRows(filterRules)    //filter the event within rows
           ,addColors(colorRules)

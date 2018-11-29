@@ -2,6 +2,7 @@ import * as d3 from "d3";
 //import eventDrops from 'event-drops';
 import {adapt} from '@cycle/run/lib/adapt';
 import xs from 'xstream';
+const moment = require('moment');
 
 import eventDrops from '../../../../Documents/GitHub/eventDrops/dist';
 import './style.css';
@@ -19,11 +20,17 @@ const tooltip = d3
 const getAllEvents = x=>x['_allEvents'];
   
 // have a look in https://github.com/marmelab/EventDrops/blob/master/src/config.js for examples
-const chart = opts => eventDrops({
+const makeChart = opts => eventDrops({
   metaballs: false,
   range: {
-    start: opts.startDate ? new Date(opts.startDate) : startOfToday(),
-    end: opts.endDate ?  new Date(opts.endDate) : startOfTomorrow(),
+    start: 
+      opts.relativeDates ? moment().add(moment.duration(opts.start)) :
+      opts.startDate ? new Date(opts.startDate) : 
+      startOfToday(),
+    end: 
+      opts.relativeDates ? moment().add(moment.duration(opts.end)) :
+      opts.endDate ?  new Date(opts.endDate) : 
+      startOfTomorrow(),
   },
   drop: {
     date: d => toDate(d.date || d.dateParsed || d.dateRaw),
@@ -38,7 +45,7 @@ const chart = opts => eventDrops({
       //const i =  data._allEvents.findIndex(e=>e.color);
       //return  (i > -1) ? data._allEvents[i].color : 'black';
     },
-    colorOld: (data,index) => {
+    /*colorOld: (data,index) => {
       const colors = {
         'COMPLETED': 'green',
         'FAILED' : 'red'
@@ -47,12 +54,12 @@ const chart = opts => eventDrops({
       return Object.entries(colors).reduce((acc,[keyword,color])=>(
           data._allEvents.some(e=>(e.text === keyword || e.message === keyword )) ? color :acc 
       ),'black');  
-    },
+    },*/
     onClick: function (data,index) {
       console.log("Clicked drop:" ,index , this, "data:", data);
       //data.lastClicked = true;
       //d3.select(this).attr('fill','yellow');
-      update(getAllEvents(data));
+      update({type:'DROP_CLICK', payload: getAllEvents(data)});
     },
     onMouseOver: data =>
       tooltip
@@ -82,6 +89,18 @@ const chart = opts => eventDrops({
         .style('opacity', 0)
         .style('pointer-events', 'none')
   },
+  zoom: {
+    //onZoom: (data) => console.log("onZoom"),
+    //onZoomStart: (data) => console.log("onZoomStart"),
+    onZoomEnd: (data,index,svg) => {
+      const [startDate,endDate] = chart.scale().domain();
+      //console.log("zoomEnd: dates:",startDate,endDate);
+      update({type:'ZOOM_END', payload: {
+        startDate: moment(startDate).toISOString().replace(/Z$/,'')
+        ,endDate: moment(endDate).toISOString().replace(/Z$/,'')
+      }});
+    }
+  },
   d3,
   label: {
     padding: 20,
@@ -94,7 +113,7 @@ const chart = opts => eventDrops({
 });
 
 var update = ()=>{};    // initial function does nothing - only once stream set up 
-
+var chart;              // reference to chart - gets updated
 //const bump = f => setTimeout(f,0);
 
 const updateChart = (opts = {}) => data => {
@@ -103,7 +122,8 @@ const updateChart = (opts = {}) => data => {
   console.log("eventDropDriver.updateChart:",chartData);
   setTimeout(()=>{
     d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
-    d3.select(opts.tag).data([chartData]).call(chart(opts)); 
+    chart = makeChart(opts);
+    d3.select(opts.tag).data([chartData]).call(chart); 
   });
 };
 
