@@ -24,11 +24,11 @@ const makeChart = opts => eventDrops({
   metaballs: false,
   range: {
     start: 
-      opts.relativeDates ? moment().add(moment.duration(opts.start)) :
+      //opts.relativeDates ? moment().add(moment.duration(opts.start)) :
       opts.startDate ? new Date(opts.startDate) : 
       startOfToday(),
     end: 
-      opts.relativeDates ? moment().add(moment.duration(opts.end)) :
+      //opts.relativeDates ? moment().add(moment.duration(opts.end)) :
       opts.endDate ?  new Date(opts.endDate) : 
       startOfTomorrow(),
   },
@@ -71,7 +71,7 @@ const makeChart = opts => eventDrops({
           + data._allEvents.slice(0,25).map(e => `
               <div class="message">
                 <strong>${e.dateRaw || e.date}</strong> 
-                - ${e.text || e.message}
+                - ${e.text || e.message || Object.values(e).join(" | ")}
                 </div>
           `).join('') +
           `</div>`
@@ -116,14 +116,15 @@ var update = ()=>{};    // initial function does nothing - only once stream set 
 var chart;              // reference to chart - gets updated
 //const bump = f => setTimeout(f,0);
 
-const updateChart = (opts = {}) => data => {
+const updateChart = (opts = {}) => payload => {
   //const chartData = clone(data);    // it gets mutated.... so clone it??
-  const chartData = data;
-  console.log("eventDropDriver.updateChart:",chartData);
+  const {startDate, endDate, data} = payload;
+  const optsMerged = {...opts,startDate,endDate};
+  console.log("eventDropDriver.updateChart:",data);
   setTimeout(()=>{
     d3.select("svg").remove();    // get rid of chart first, otherwise it breaks
-    chart = makeChart(opts);
-    d3.select(opts.tag).data([chartData]).call(chart); 
+    chart = makeChart(optsMerged );
+    d3.select(opts.tag).data([data]).call(chart); 
   });
 };
 

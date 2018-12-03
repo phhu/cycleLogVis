@@ -7,8 +7,9 @@ import {makeDOMDriver,h} from '@cycle/dom';
 import {makeHTTPDriver} from '@cycle/http';
 import {makeHistoryDriver} from '@cycle/history';
 //import {h} from 'snabbdom';    //could prob get rid of JSX
-import Snabbdom from 'snabbdom-pragma';    //could prob get rid of JSX
+//import Snabbdom from 'snabbdom-pragma';    //could prob get rid of JSX
 import 'babel-polyfill';    // needed for async 
+
 
 import {format,addMilliseconds} from 'date-fns'
 const moment = require('moment');
@@ -27,6 +28,7 @@ import {getFilesUnderFolder} from './filesFromFolder';
 const parseDuration = require('parse-duration');
 const urlJoin = require('proper-url-join');
 const filterByString = require('./utils/regExpFilter');
+const {getDate} = require('./utils/dates');
 // for debugging pipes: debug('test')
 const debug = label => tap(x=>console.log(label,x));
 
@@ -79,8 +81,8 @@ const initialSettings = pipe(
   queryStringToObject
   ,evolve({
     //colorRules: s=>'test',
-    startDate: checkForDuration ,
-    endDate: checkForDuration,
+    startDate: getDate ,
+    endDate: getDate,   //checkForDuration
   })
 )(window.location.search);
 
@@ -96,28 +98,21 @@ const getRequestsFromInitialSettings = initialSettings => {
   )(initialSettings);
 };
 
+/*
 const ISLOGS = '/logs/Integration%20Server';
 const FE = '/software/FusionExchange';
 
 const fileRequests = [
   {url: '/data/timeline.json'},
   //{url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-04-58-02-789.zip`},
-  //{url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-12-10-02-613.zip`},
-  //{url: `${ISLOGS}/IServer/2018-10-21/2018-10-21-19-28-03-159.zip`},
   `/logs/Integration%20Server/IServer.log`,
   // `http://10.156.206.151:8081/ProductionServer/wfo.log4j.log`,
-  //{url: `/logs/Integration%20Server/Plugin_RIExtender102.log`},
-  //{url: `${ISLOGS}/Plugin_RIExtender102/2018-09-12/2018-09-12-23-12-01-453.zip`},
-  //{url: `${ISLOGS}/IServer/2018-10-24/`},
-  //{url: `/software/FusionExchange/BPX-Server.xml`}, // would be good to filter this?    
-  //{url: `${FE}/Plugins/Speech/Logs/SpeechSourceMeasureProvider.log`},
-  //{url: '/data/Plugin_BatchExtender102.log'},
-  //{url: '/data/2018-09-12-23-12-01-453.zip'},
+
 ];
 const folderRequests = [
  // `http://localhost:8081${ISLOGS}/Plugin_RIExtender/`
 ];
-
+*/
 /*const mergeRequests = async (fileRequests,folderRequests) => {
   let pp;
   const getFiles = folderRequests.map(getFilesUnderFolder);
@@ -138,15 +133,14 @@ const requestGroups = [
 const inputs = [
   {id:'reload', attrs:{type:'button',value:'Reload',accesskey:"r"}}
   ,{id:'filter', displayName:'filter chart rows' ,updateEvent: 'change',debounce:500, style:{width:"30%"}}
-  ,{id:'startDate',displayName:'Start date',debounce:500,attrs: {type:'datetime-local',step:'.001'}}
-  ,{id:'endDate',displayName:'End date',debounce:500,attrs: {type:'datetime-local',step:'.001'}}
-  ,{id:'start',displayName:'Start dur',debounce:500}
-  ,{id:'end',displayName:'End dur',debounce:500}
+  ,{id:'startDate',displayName:'Start date',updateEvent: 'change',debounce:1500,attrs: {type:'text',step:'.001'}}  // datetime-local
+  ,{id:'endDate',displayName:'End date',updateEvent: 'change', debounce:1500,attrs: {type:'text',step:'.001'}}
+  //,{id:'start',displayName:'Start dur',debounce:500}
+  //,{id:'end',displayName:'End dur',debounce:500}
   //,{id:'startFromNow',debounce:500,attrs: {type:'text'}}
   //,{id:'endFromNow',debounce:500,attrs: {type:'text'}}
   ,{id:'filterByDate',displayName:'Filter by date', attrs:{type:'checkbox'}}
-  ,{id:'relativeDates',displayName:'Use relative dates', attrs:{type:'checkbox'}}
-  ,{id:'requestBase',displayName:'Request URL base',attrs:{'size':'50'}}
+  //,{id:'relativeDates',displayName:'Use relative dates', attrs:{type:'checkbox'}}
   ,{id:'requests',displayName:'requests',tag:'textarea',spanStyle: {
     "display":"block"
   }, style:{
@@ -155,6 +149,7 @@ const inputs = [
     width: "600px",
     height: "40px",
   }}
+  ,{id:'requestBase',displayName:'Request URL base',attrs:{'size':'50'}}
   ,{id:'colorRules',displayName:'Color Rules',tag:'textarea',style:{
     "white-space":"pre-wrap",   // sorts out enter key behaviour
     // "display":'block',
@@ -169,6 +164,7 @@ const inputs = [
     height: "40px",
   }}
   ,{id:'datesFromChart', attrs:{type:'button',value:'Dates from chart'}}
+  ,{id:'relativeDatesFromChart', attrs:{type:'button',value:'Relative dates from chart'}}
   //,{id:'enableFilter', attrs:{type:'checkbox'}}
 ].map(addDefaultsToInputs);
 
@@ -245,14 +241,17 @@ const main = ({initialSettings,requestGroups}) => sources => {
     .map(([data,inputValues])=>[data,inputValuesToObj(inputValues)])
     //.debug("eventDropInputs")
     .map(([data,{filter,startDate,endDate,filterByDate,filterRules,colorRules}]) =>
-        pipe(
-          filterByString({textFn:prop('name'),reBuilder:'or'})(filter)   // filter the chart rows 
-          ,filterDatasetsByDate({startDate,endDate,filterByDate})   // filter the chart rows 
-          ,filterDataRows(filterRules)    //filter the event within rows
-          ,addColors(colorRules)
-        )(data)
+        ({
+          data: pipe(
+            filterByString({textFn:prop('name'),reBuilder:'or'})(filter)   // filter the chart rows 
+            ,filterDatasetsByDate({startDate,endDate,filterByDate})   // filter the chart rows 
+            ,filterDataRows(filterRules)    //filter the event within rows
+            ,addColors(colorRules)
+          )(data)
+          ,startDate: getDate(startDate)
+          ,endDate: getDate(endDate)
+        })  
       )
-      //.debug("chartDataFiltered and colored")
     ,DATATABLE: clickedEventDropData$
       .map(pipe(
         map(d=>{
@@ -263,11 +262,11 @@ const main = ({initialSettings,requestGroups}) => sources => {
       ))
     ,history: xs.combine(...values(domInputs))
       .compose(debounce(500))
+      .debug("historyOut")
       .map(inputValuesToObj)
-      .map(omit(['reload']))
+      .map(omit(['reload','datesFromChart']))
       .map(reject(x=>x===''||x===false|| x==="false" ))   // matching string false a bad idea
       .map(objectToQueryString)
-      //.debug("historyOut")
   };
 }
    

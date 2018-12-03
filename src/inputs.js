@@ -2,7 +2,8 @@
 import xs from 'xstream';
 import debounce from 'xstream/extra/debounce';
 import sampleCombine from 'xstream/extra/sampleCombine';
-import {pipe,map,path,fromPairs} from 'ramda';
+import {pipe,map,path,fromPairs,evolve} from 'ramda';
+const {durationBetween} = require('./utils/dates');
 
 export const addDefaultsToInputs = i => ({
   displayName:i.id
@@ -10,7 +11,7 @@ export const addDefaultsToInputs = i => ({
   //,type:'text'
   ,updateEvent:
     (i.attrs && i.attrs.type === 'button' )   ? 'click' :
-    'input'    
+    'change'    
   ,targetPath: 
     (i.attrs && i.attrs.type === 'checkbox' ) ? path(['target','checked']) : 
     (i.attrs && i.attrs.type === 'button' )   ? (e=> true) :    
@@ -50,17 +51,24 @@ export const getDomInputStreams = (sources,initialSettings) => inputs => {
     ,fromPairs    //return an object of streams
   )(inputs);
   
-  const updateDates$ = ret.datesFromChart$
-    .compose(sampleCombine(
-      sources.EVENT_DROP
-        .filter(e=>e.type==='ZOOM_END')
-        .compose(debounce(250))
-        .map(e=>e.payload)
-    ))
-    .map(x=>x[1]) 
+  const datesFromChartZoom$ = sources.EVENT_DROP
+  .filter(e=>e.type==='ZOOM_END')
+    .compose(debounce(250))
+    .map(e=>e.payload);
+
+  const updateDates$ = xs.merge(
+    ret.datesFromChart$.map(e=>1)
+    ,ret.relativeDatesFromChart$.map(e=>2)
+  )
+    .compose(sampleCombine(datesFromChartZoom$))
+    .map(x=>(x[0] === 1) ? x[1]: evolve({
+      startDate:durationBetween,
+      endDate:durationBetween
+    },x[1]))
+    //.startWith({startDate:initialSettings.startDate,endDate:initialSettings.endDate})
   ;
-  ret.startDate$ = xs.merge(ret.startDate$,updateDates$.map(o=>o.startDate.replace(/Z$/,''))).debug("merged start date");
-  ret.endDate$ = xs.merge(ret.endDate$,updateDates$.map(o=>o.endDate.replace(/Z$/,''))).debug("merged end date");
+  ret.startDate$ = xs.merge(ret.startDate$,updateDates$.map(o=>o.startDate)).startWith(initialSettings.startDate || '').debug("merged start date");
+  ret.endDate$ = xs.merge(ret.endDate$,updateDates$.map(o=>o.endDate)).startWith(initialSettings.endDate || '').debug("merged end date");
 
   return ret;
 };

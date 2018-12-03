@@ -1,6 +1,6 @@
 // this fills a request object with properties, generally based on url
 
-import {pipe,omit,prop,map,find,is} from 'ramda';
+import {pipe,omit,prop,map,find,is,tap} from 'ramda';
 
 // this could probably be generalised a bit... e.g. read folder and import as parsers object 
 const parsers = {
@@ -27,13 +27,26 @@ export const logToData = name => data =>
 //const tapText = pipe(tap(x=>console.log(x)),prop('text'))
 
 export const parser = (req) => {
-  console.log("parserReq",req);      //might be best to determine parser dynamically - or make it possible to do this - when have data and response details (mine type etc)
+  //console.log("parserReq",req);      //might be best to determine parser dynamically - or make it possible to do this - when have data and response details (mine type etc)
   const r = requestPropsByType.find(rs=>stringMatchesRegExp(rs.re,req.url));
   return  (r && r.parser) ? r.parser : parsers.basic; 
 } 
 //depending on the ending of the URL, get additional properties for request
 // should prop use a regexp here?
 const requestPropsByType = [
+  {
+    re:'^.*tier3\\.glalab\\.local\\/es\\/.*$',
+    parser: JSON.parse ,
+    props: req => ({
+      transforms: [
+        prop('text'),
+        JSON.parse,
+        //tap(x=>console.log("jsonData",x)),
+        d=>d.hits.hits.map(h=>h._source),
+        logToData(req.url),
+      ]
+    })
+  },
   {
     re:'plugin\\d+\\.log$',
     parser: parsers.javaConsoleLogXml ,
