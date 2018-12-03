@@ -7,6 +7,7 @@ const {durationBetween} = require('./utils/dates');
 
 export const addDefaultsToInputs = i => ({
   displayName:i.id
+  ,mapping:x=>x
   ,debounce:0
   //,type:'text'
   ,updateEvent:
@@ -44,6 +45,7 @@ export const getDomInputStreams = (sources,initialSettings) => inputs => {
           .events(input.updateEvent)
           //.compose(debounce(input.debounce))
           .map(input.targetPath)
+          .map(input.mapping)
           //.debug("input: " + input.id)
           .startWith(initialSettings[input.id] || ''),
       ]

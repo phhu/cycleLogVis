@@ -2621,6 +2621,10 @@ eslint-scope@^4.0.0:
     esrecurse "^4.1.0"
     estraverse "^4.1.1"
 
+esprima@2.4.1:
+  version "2.4.1"
+  resolved "https://registry.yarnpkg.com/esprima/-/esprima-2.4.1.tgz#83059c751e9e9c41d228a41aaa1eef0ccce384ba"
+
 esprima@^4.0.0:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/esprima/-/esprima-4.0.1.tgz#13b04cdb3e6c5d19df91ab6987a8695619b0aa71"
@@ -4355,6 +4359,12 @@ loose-envify@^1.0.0, loose-envify@^1.2.0:
   resolved "https://registry.yarnpkg.com/loose-envify/-/loose-envify-1.4.0.tgz#71ee51fa7be4caec1a63839f7e682d8132d30caf"
   dependencies:
     js-tokens "^3.0.0 || ^4.0.0"
+
+loose-json@^1.1.2:
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/loose-json/-/loose-json-1.1.2.tgz#e86186d087c7ff81bc74067febfeaa747e1384e3"
+  dependencies:
+    esprima "2.4.1"
 
 loud-rejection@^1.0.0:
   version "1.6.0"

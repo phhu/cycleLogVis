@@ -29,6 +29,7 @@ const parseDuration = require('parse-duration');
 const urlJoin = require('proper-url-join');
 const filterByString = require('./utils/regExpFilter');
 const {getDate} = require('./utils/dates');
+const {parser:standardiseSpec} = require('./utils/standardiseObject');
 // for debugging pipes: debug('test')
 const debug = label => tap(x=>console.log(label,x));
 
@@ -149,15 +150,15 @@ const inputs = [
     width: "600px",
     height: "40px",
   }}
-  ,{id:'requestBase',displayName:'Request URL base',attrs:{'size':'50'}}
-  ,{id:'colorRules',displayName:'Color Rules',tag:'textarea',style:{
+  ,{id:'requestBase',displayName:'Request URL base',mapping: standardiseSpec('substitution'),attrs:{'size':'50'}}
+  ,{id:'colorRules',displayName:'Color Rules',mapping: standardiseSpec('color'),tag:'textarea',style:{
     "white-space":"pre-wrap",   // sorts out enter key behaviour
     // "display":'block',
     width: "300px",
     height: "40px",
   }}
  // ,{id:'enableColors', attrs:{type:'checkbox'}}
-  ,{id:'filterRules',displayName:'Filter Rules',tag:'textarea',style:{
+  ,{id:'filterRules',displayName:'Filter Rules',mapping: standardiseSpec('filter'),tag:'textarea',style:{
     "white-space":"pre-wrap",   // sorts out enter key behaviour
     // "display":'block',
     width: "300px",
@@ -262,10 +263,10 @@ const main = ({initialSettings,requestGroups}) => sources => {
       ))
     ,history: xs.combine(...values(domInputs))
       .compose(debounce(500))
-      .debug("historyOut")
       .map(inputValuesToObj)
       .map(omit(['reload','datesFromChart']))
       .map(reject(x=>x===''||x===false|| x==="false" ))   // matching string false a bad idea
+      .debug("historyOut")
       .map(objectToQueryString)
   };
 }
