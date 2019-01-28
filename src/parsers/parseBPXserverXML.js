@@ -203,13 +203,11 @@ const bpxServerXmlToTimeline = ({
   entries=[]
 }={}) => xml => new Promise((resolve,reject)=> {
   xml2js.parseString(xml,xmlOpts,(err,result) => {
-    console.log("test");
+    //console.log("test");
     if (err){reject(err);}
     const pipe = R.pipe(
       //R.pick(interestingEntries(entries))   //  [ 'timer100','timer106', 'gm101' ]
-      R.identity
-      //
-      ,normaliseStructure
+      normaliseStructure
       ,R.map(getMessages)
       ,R.map(getUserName)
       ,reduceIndexed((acc,d,i,arr)=>{
@@ -219,7 +217,6 @@ const bpxServerXmlToTimeline = ({
             x=>(x.cat==='configure' && x.id===d.id && x.type===d.type)
             ,arr
           ) || {};
-          //console.log("config",config);
           acc.push({
             'name': config.username + ' [' + d.type + d.id + ']', 
             config, 
