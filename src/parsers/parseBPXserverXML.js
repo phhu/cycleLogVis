@@ -1,6 +1,7 @@
 const R = require('ramda')
   ,xml2js = require('xml2js')
   ,moment = require('moment')    //needs to be replaces with date-fns
+  //,fs = require('fs')
   //,{parse,format} = require('date-fns')
 ;
 
@@ -14,18 +15,25 @@ const xmlOpts = {
 };
 //const xmlToJson = xml => xml2js.parseString(xmlOpts)(xml); 
 //const stringifyJSON = x=>JSON.stringify(x,null,2);
-//const logJson = R.tap(R.pipe(stringifyJSON,console.log)); 
+//const logJson = R.tap(R.pipe(stringifyJSON,console.log));  
 
 // *** normalise the structure a little  
 const normaliseStructure = d => 
-  Object.entries(d).reduce((o,[key,value])=>{
-    const [a,type,id,cat] = /^([a-z]+)([0-9]*)-([a-z]+)$/.exec(key) || [[],null,null,null];
-    const idn = parseInt(id || 0) ;    // there isn't always an ID
+  Object.entries(d).map(([key,value])=>{
+    const [unusedArray,type,id,cat] = /^([a-z]+)([0-9]*)-([a-z]+)$/.exec(key) || [[],null,null,null];
+    return {
+      id
+      ,type
+      ,cat
+      ,...value
+    };    
+  });
+    /*const idn = parseInt(id || 0) ;    // there isn't always an ID
     o[type] = o[type] || {} ;
     o[type][idn] = o[type][idn] || {};
     o[type][idn][cat] = value;
     return o;
-  },{})
+  },{})*/
 ;
   
 // *** get useful data
@@ -137,25 +145,29 @@ const sortTable = R.sortWith([
 ]);
 
 const makeTimelineData = d => {
-  //console.log("d",d);
+  console.log("d",d);
   const flatData = flattenData(d);
+  console.log("flatData",flatData);
   return R.pipe(
-    R.filter(R.propEq('type','gm')),     // only gm records
-    R.filter(R.pathSatisfies(
-      R.test(/^SC.*/),['user_name']
-    )),
+    //R.filter(R.propEq('type','gm')),     // only gm records
+    //R.filter(R.pathSatisfies(
+    //  R.test(/^SC.*/),['user_name']
+    //)),
+    R.tail,
     sortTable,
-    R.reduce((acc,i)=>
-      acc.concat(
+    R.tap(x=>console.log("sorted table",x)),
+    /*R.reduce((acc,i)=>{return acc.concat(
         [i],
         R.map(ur=> {
+          console.log("ur",ur);
           const ret = d[ur.type][ur.id];
           ret.isChild = true;
           ret.user_name = ur.DESCRIPTION || ret.user_name;
           return ret;
         },i.user_rules)
-      )
-    ,[]),
+      )}
+    ),*/
+    R.tap(x=>console.log("sorted table2",x)),
     R.map(i=>({
       name: i.user_name + "[" +i.type.toUpperCase() + i.id + "]" + (i.isChild ? "**" : ""),
       data: i.messages,
@@ -168,19 +180,70 @@ const interestingEntries = R.reduce((a,i)=>a.concat(
   i+'-status'
   ),[])
 
+const getMessages = d => {
+  d.messages = (d.status_msgs ? 
+    reduceObjectToArray({filterRe: /^element(\d+)$/})(d.status_msgs[d.type+d.id]) : 
+      []
+  ).map(reduceMessage);
+  return d;
+}
+
+const getUserName = d => {
+  d.username = (d.cat === 'configure' ? 
+    R.propOr('???','VALUE',R.find(
+      R.propSatisfies(x=>x.match(/\/USER_NAME$/),'XPATH')
+      ,d.user_rules.replace
+    )) : '');
+  return d;
+}
+
+const reduceIndexed = R.addIndex(R.reduce);
+
 const bpxServerXmlToTimeline = ({
   entries=[]
 }={}) => xml => new Promise((resolve,reject)=> {
   xml2js.parseString(xml,xmlOpts,(err,result) => {
+    console.log("test");
     if (err){reject(err);}
     const pipe = R.pipe(
       //R.pick(interestingEntries(entries))   //  [ 'timer100','timer106', 'gm101' ]
       R.identity
+      //
       ,normaliseStructure
-      ,getUsefulData
+      ,R.map(getMessages)
+      ,R.map(getUserName)
+      ,reduceIndexed((acc,d,i,arr)=>{
+        //console.log("arr",i,d.type,d.id,d.cat);
+        if (d.cat === 'status' && d.messages){
+          const config = R.find(
+            x=>(x.cat==='configure' && x.id===d.id && x.type===d.type)
+            ,arr
+          ) || {};
+          //console.log("config",config);
+          acc.push({
+            'name': config.username + ' [' + d.type + d.id + ']', 
+            config, 
+            status: d,
+            'data': d.messages,
+          });
+        }
+        return acc;
+      },[])
+      /*,R.sortWith([
+        R.ascend(R.prop('type')),
+        R.ascend(R.prop('id')),
+        R.ascend(R.prop('cat')),
+      ])*/
+      /*R.map(i=>({
+        name: i.username + "[" +i.type.toUpperCase() + i.id + "]" + (i.isChild ? "**" : ""),
+        data: i.messages,
+      })*/
+      //,R.tap(x=>console.log("XMLdata",JSON.stringify(x,null,2)))
+      //,d => fs.writeFile('data.json',JSON.stringify(d,null,2))
+      //,getUsefulData
       //,flattenData
-      ,makeTimelineData
-      //,R.tap(x=>console.log("XMLdata",x))
+      //,makeTimelineData
+      //,R.tap(x=>console.log("XMLdata",JSON.stringify(x,null,2)))
     );
     resolve(pipe(result));
   }); 

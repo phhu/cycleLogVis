@@ -10,7 +10,7 @@ const parsers = {
   basic: require('./parsers/parseBasic')({includeLine:true}),
   csv: require('./parsers/parseCsv')({}),
   javaConsoleLogXml: require('./parsers/parseJavaConsoleLogXml')({}),
-  bpxServerXmlToTimeline: require('./parsers/parseBPXserverXML'),
+  bpxServerXmlToTimeline: require('./parsers/parseBPXserverXML').bpxServerXmlToTimeline(),
 };
 
 const {parseSqlFromMessage} = require('./parsers/parseSqlFromMessage');
@@ -27,9 +27,11 @@ export const logToData = name => data =>
 //const tapText = pipe(tap(x=>console.log(x)),prop('text'))
 
 export const parser = (req) => {
-  //console.log("parserReq",req);      //might be best to determine parser dynamically - or make it possible to do this - when have data and response details (mine type etc)
+  console.log("parserReq",req);      //might be best to determine parser dynamically - or make it possible to do this - when have data and response details (mine type etc)
   const r = requestPropsByType.find(rs=>stringMatchesRegExp(rs.re,req.url));
-  return  (r && r.parser) ? r.parser : parsers.basic; 
+  const ret = (r && r.parser) ? r.parser : parsers.basic; 
+  console.log("ret",ret);
+  return ret; 
 } 
 //depending on the ending of the URL, get additional properties for request
 // should prop use a regexp here?
@@ -135,14 +137,16 @@ const requestPropsByType = [
     props: req => ({
       //responseType: 'blob'
       transforms: [
+        //tap(x=>console.log("datahere",x)),
         prop('text'),
         parser(req),
+        tap(x=>console.log("dataafterparser",x)),
         // body => ([{
         //   date:'2018-10-24'
         //   ,text:'testFAKE XML'
         //   ,body
         // }]),
-        logToData(req.url),
+        //logToData(req.url),
       ] 
     })
   },
