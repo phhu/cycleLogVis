@@ -1,8 +1,9 @@
 // import {combineByGroup, getResponse} from './requests'
 //import debounce from 'xstream/extra/debounce';
 import xs from 'xstream';
-import {pipe,map,concat,partition,prop,test,unnest,assoc} from 'ramda';
+import {pipe,map,concat,partition,prop,test,unnest,assoc,ifElse} from 'ramda';
 import {format} from 'date-fns';
+import {jsonTransforms} from './requestMapper';
 
 // put multiple requests on one line of chart
 
@@ -54,7 +55,12 @@ export const getResponse = sources => ({
   sources.HTTP
     .select(category)
     .flatten()       // stream of streams....     
-    .map(pipe(...transforms))   // run transforms to get the data as json
+    //.debug(res=>console.log("getResponse",res))   //.header['content-type']
+    .map(ifElse(      // this could prop be a converge...
+      res => res.header['content-type'] && /^application\/json/i.test(res.header['content-type'])
+      ,pipe(...jsonTransforms({url:category}))
+      ,pipe(...transforms)
+    ))   // run transforms to get the data as json    - if it's already json, don't need to bother
     .map(toStreamWithAnyPromisesResolved) 
     .flatten()     
     .map(forceIntoArray) 

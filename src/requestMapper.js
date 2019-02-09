@@ -1,6 +1,7 @@
 // this fills a request object with properties, generally based on url
 
 import {pipe,omit,prop,map,find,is,tap} from 'ramda';
+import { init } from 'snabbdom';
 
 // this could probably be generalised a bit... e.g. read folder and import as parsers object 
 const parsers = {
@@ -35,6 +36,12 @@ export const parser = (req) => {
 } 
 //depending on the ending of the URL, get additional properties for request
 // should prop use a regexp here?
+export const jsonTransforms = req => [
+  prop('text'),
+  JSON.parse,
+  logToData(req.url),
+];
+
 const requestPropsByType = [
   {
     re:'^.*tier3\\.glalab\\.local\\/es\\/.*$',
@@ -64,11 +71,7 @@ const requestPropsByType = [
     re:'\\.json$',
     parser: JSON.parse,
     props: req => ({
-      transforms: [
-        prop('text'),
-        parser(req),
-        logToData(req.url),
-      ]
+      transforms: jsonTransforms(req)
     })
   },
   {
@@ -186,11 +189,16 @@ const stringMatchesRegExp = (reString, str) => {
 }
 const getExtensionFromUrl = url => url.replace(/^.*?\.(.*?)(\.[0-9]+)?$/,"$1");
 
+
+
 // parser determination needs to be done dynamically - e.g. const parse ({specifyParser,filename},file) => parsedData
 // as may want to parse a different type to what was originally put in, as in folders and zip files.
 export const addDefaultsToRequest = initialSettings => req => { 
+  console.log("REQ",req);
   req = is(String, req) ? {url:req} : req;   // allow just putting in a url as string instead of object
   const rb = initialSettings.requestBase || '';
+  req.url = req.url.replace(/%startDate%/gi,initialSettings.startDate);    // do substitution
+  req.url = req.url.replace(/%endDate%/gi,initialSettings.endDate);  
   req.url = req.url.replace(/%s/g,rb);    // do substitution
   return ({
     category: req.url

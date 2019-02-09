@@ -125,10 +125,11 @@ const folderRequests = [
   return fileRequests.concat(...pp).map(addDefaultsToRequest);
 }*/
 
+// used to combine separate items on same line
 const requestGroups = [
-  {name:'lugin_RIExtender',re: /\/Plugin_RIExtender\//i}
-  ,{name:'iserver.log',re: /iserver/i}
-  ,{name:'Plugin_RIExtender102.log',re: /Plugin_RIExtender102/i}
+  //{name:'lugin_RIExtender',re: /\/Plugin_RIExtender\//i}
+  //,{name:'iserver.log',re: /iserver/i}
+  //,{name:'Plugin_RIExtender102.log',re: /Plugin_RIExtender102/i}
 ];
 
 const inputs = [
