@@ -47,6 +47,8 @@ export const toStreamWithAnyPromisesResolved = x =>
 
 const forceIntoArray = d=>[].concat(d);
 
+const resIsJson =  res => res.header['content-type'] && /^application\/json/i.test(res.header['content-type'])
+
 export const getResponse = sources => ({
   category = 'someRequestUrl'
   ,transforms = prop('text')     // generally we want text, but might also be blob. Can then pipe in others 
@@ -56,11 +58,10 @@ export const getResponse = sources => ({
     .select(category)
     .flatten()       // stream of streams....     
     //.debug(res=>console.log("getResponse",res))   //.header['content-type']
-    .map(ifElse(      // this could prop be a converge...
-      res => res.header['content-type'] && /^application\/json/i.test(res.header['content-type'])
+    .map(ifElse(resIsJson      // if the content type is JSON, use json parser directly, else 
       ,pipe(...jsonTransforms({url:category}))
       ,pipe(...transforms)
-    ))   // run transforms to get the data as json    - if it's already json, don't need to bother
+    ))  
     .map(toStreamWithAnyPromisesResolved) 
     .flatten()     
     .map(forceIntoArray) 

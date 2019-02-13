@@ -1,4 +1,4 @@
-const {tap,is,pipe} = require( 'ramda');
+const {tap,is,pipe,tryCatch} = require( 'ramda');
 const parse = require('loose-json');
 
 const objMap = (keyKey,valueKey) => obj => Object.entries(obj)
@@ -10,12 +10,12 @@ const templates = {
   color: {
     'String': str => ([{ color:'red',search:str }]),
     'Object': objMap("color","search"),
-    //'Array': arr => arr,
+    'Array': arr => arr,
   },
   filter: {
     'String': str => ([{ search:str }]),
     'Object': objMap("name","search"),
-    //'Array': arr => arr,
+    'Array': arr => arr,
   },
   // '%s': 'value'
   substitution: {
@@ -28,6 +28,7 @@ const templates = {
 const test = type => (input) => {
   try {
     return is(String,input) ? templates[type].String(input) :
+      is(Array,input) ? templates[type].Array(input) :
       is(Object,input) ? templates[type].Object(input) :
       input;
   } catch (e){
@@ -36,7 +37,7 @@ const test = type => (input) => {
 }
 
 const parser = type => pipe(
-  parse
+  tryCatch(parse,(e,x)=>`${x}`)    // if parse fails, treat as a string
   ,test(type)
   //,tap(x=>console.log("x",x))
   ,x=>JSON.stringify(x)
