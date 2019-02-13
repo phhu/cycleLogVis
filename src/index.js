@@ -125,7 +125,7 @@ const folderRequests = [
   return fileRequests.concat(...pp).map(addDefaultsToRequest);
 }*/
 
-// used to combine separate items on same line
+// used to combine separate items on same line. 
 const requestGroups = [
   //{name:'lugin_RIExtender',re: /\/Plugin_RIExtender\//i}
   //,{name:'iserver.log',re: /iserver/i}
@@ -148,10 +148,15 @@ const inputs = [
   }, style:{
     "white-space":"pre-wrap",   // sorts out enter key behaviour
     "display":'block',
-    width: "600px",
+    width: "99%",
+    height: "80px",
+  }}
+  ,{id:'requestBase',displayName:'Request URL base',mapping: standardiseSpec('substitution'),tag:'textarea',style:{
+    "white-space":"pre-wrap",   // sorts out enter key behaviour
+    // "display":'block',
+    width: "300px",
     height: "40px",
   }}
-  ,{id:'requestBase',displayName:'Request URL base',mapping: standardiseSpec('substitution'),attrs:{'size':'50'}}
   ,{id:'colorRules',displayName:'Color Rules',mapping: standardiseSpec('color'),tag:'textarea',style:{
     "white-space":"pre-wrap",   // sorts out enter key behaviour
     // "display":'block',

@@ -1,6 +1,6 @@
 // this fills a request object with properties, generally based on url
 
-import {pipe,omit,prop,map,find,is,tap} from 'ramda';
+import {pipe,omit,prop,map,find,is,tap,tryCatch,always} from 'ramda';
 import { init } from 'snabbdom';
 
 // this could probably be generalised a bit... e.g. read folder and import as parsers object 
@@ -189,17 +189,27 @@ const stringMatchesRegExp = (reString, str) => {
 }
 const getExtensionFromUrl = url => url.replace(/^.*?\.(.*?)(\.[0-9]+)?$/,"$1");
 
-
+const urlReplace = ({
+  encode=false
+}={}) => (str,search,replacement) => {
+  console.log("replace",str,search,replacement);
+  return str.replace(
+    new RegExp(RegExp.escape(search),'g')
+    ,encode ? encodeURIComponent(replacement) : replacement
+  )
+}
 
 // parser determination needs to be done dynamically - e.g. const parse ({specifyParser,filename},file) => parsedData
 // as may want to parse a different type to what was originally put in, as in folders and zip files.
 export const addDefaultsToRequest = initialSettings => req => { 
   console.log("REQ",req);
   req = is(String, req) ? {url:req} : req;   // allow just putting in a url as string instead of object
-  const rb = initialSettings.requestBase || '';
+  //const rb = initialSettings.requestBase || '';
+  const rb = tryCatch(JSON.parse, always( {"%s":initialSettings.requestBase}))(initialSettings.requestBase);
+  //req.url = req.url.replace(/%s/g,rb);    // do substitution
+  req.url = Object.entries(rb).reduce(((url,[key,replacement])=>urlReplace()(url,key,replacement)),req.url)
   req.url = req.url.replace(/%startDate%/gi,initialSettings.startDate);    // do substitution
   req.url = req.url.replace(/%endDate%/gi,initialSettings.endDate);  
-  req.url = req.url.replace(/%s/g,rb);    // do substitution
   return ({
     category: req.url
     ,...(

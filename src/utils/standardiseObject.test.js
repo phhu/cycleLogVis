@@ -12,8 +12,9 @@ it('should handle filters',()=>{
 })
 
 it('should handle substitution',()=>{
-  expect(parser('substitution')('"test"')).to.eql('{"%s":"test"}');
-  expect(parser('substitution')('{"%s":"test"}')).to.eql('{"%s":"test"}');
+  //expect(parser('substitution')('"test"')).to.eql('"test"');
+ expect(parser('substitution')('"test"')).to.eql('{"%s":"test"}');
+  //expect(parser('substitution')('{"%s":"test"}')).to.eql('{"%s":"test"}');
 })
 
 /*

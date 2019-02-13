@@ -19,9 +19,10 @@ const templates = {
   },
   // '%s': 'value'
   substitution: {
+    //'String': str => str,     // 
     'String': str => ({'%s':str }),     // 
-    'Object': o=>o //objMap("search","replacement"),
-    //'Array': arr => arr,
+    'Object': o=>o, //objMap("search","replacement"),
+    'Array': arr => arr,
   },
 }
 
