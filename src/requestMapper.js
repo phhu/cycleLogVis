@@ -34,11 +34,32 @@ export const parser = (req) => {
   console.log("ret",ret);
   return ret; 
 } 
+
+const mapItem = hit=> ({
+  _index: hit._index,
+  _type: hit._type,
+  _id: hit._id,
+  _score: hit._score,
+  ...hit._source
+});
+
+export const flattenEsData = data => {
+  if (data.hits && data.hits.hits){
+    return data.hits.hits.map(mapItem);
+  } else if (data._source){
+    return mapItem(data);
+  } else {
+    return data;
+  }
+}
+
 //depending on the ending of the URL, get additional properties for request
 // should prop use a regexp here?
 export const jsonTransforms = req => [
   prop('text'),
   JSON.parse,
+  flattenEsData,
+  // here we need to 
   logToData(req.url),
 ];
 
@@ -199,17 +220,29 @@ const urlReplace = ({
   )
 }
 
+const replaceStartAndEndDate = lookup => s => {
+  return ['startDate','endDate'].reduce(
+    (acc,prop)=>acc.replace(
+      new RegExp(`%${prop}%`,'gi'),
+      (lookup[prop] === undefined ? 'NOTFOUND' : lookup[prop])
+    )
+    ,s
+  )
+};
+
+
 // parser determination needs to be done dynamically - e.g. const parse ({specifyParser,filename},file) => parsedData
 // as may want to parse a different type to what was originally put in, as in folders and zip files.
 export const addDefaultsToRequest = initialSettings => req => { 
-  console.log("REQ",req);
+  const replaceDates = replaceStartAndEndDate(initialSettings);
   req = is(String, req) ? {url:req} : req;   // allow just putting in a url as string instead of object
-  //const rb = initialSettings.requestBase || '';
-  const rb = tryCatch(JSON.parse, always( {"%s":initialSettings.requestBase}))(initialSettings.requestBase);
-  //req.url = req.url.replace(/%s/g,rb);    // do substitution
-  req.url = Object.entries(rb).reduce(((url,[key,replacement])=>urlReplace()(url,key,replacement)),req.url)
-  req.url = req.url.replace(/%startDate%/gi,initialSettings.startDate);    // do substitution
-  req.url = req.url.replace(/%endDate%/gi,initialSettings.endDate);  
+  const rb = tryCatch(JSON.parse, always( {"%x":initialSettings.requestBase}))(initialSettings.requestBase);
+  req.url = replaceDates(req.url);
+  req.url = Object.entries(rb).reduce(
+    ((url,[key,replacement])=>
+      urlReplace()(url,key,replaceDates(replacement || 'now')))
+    ,req.url
+  )
   return ({
     category: req.url
     ,...(

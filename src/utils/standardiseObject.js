@@ -17,10 +17,10 @@ const templates = {
     'Object': objMap("name","search"),
     'Array': arr => arr,
   },
-  // '%s': 'value'
+  // '%x': 'value'
   substitution: {
     //'String': str => str,     // 
-    'String': str => ({'%s':str }),     // 
+    'String': str => ({'%x':str }),     // 
     'Object': o=>o, //objMap("search","replacement"),
     'Array': arr => arr,
   },

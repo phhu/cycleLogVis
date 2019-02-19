@@ -33,7 +33,7 @@ const makeChart = opts => eventDrops({
       startOfTomorrow(),
   },
   drop: {
-    date: d => toDate(d.date || d.dateParsed || d.dateRaw),
+    date: d => toDate(d.date || d.dateParsed || d.dateRaw || d['@timestamp']),
     radius: (data,index) => Math.min(4 + Math.pow(data._allEvents.length,1/2),20),
     color: (data,index) => {
       const coloredRows = data._allEvents.filter(r=>r.color);

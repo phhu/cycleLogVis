@@ -13,14 +13,14 @@ it('should handle filters',()=>{
 
 it('should handle substitution',()=>{
   //expect(parser('substitution')('"test"')).to.eql('"test"');
- expect(parser('substitution')('"test"')).to.eql('{"%s":"test"}');
-  //expect(parser('substitution')('{"%s":"test"}')).to.eql('{"%s":"test"}');
+ expect(parser('substitution')('"test"')).to.eql('{"%x":"test"}');
+  //expect(parser('substitution')('{"%x":"test"}')).to.eql('{"%x":"test"}');
 })
 
 /*
-expect(parser('substitution')('[{"%s":"test"},{"%t":"testa"}]')).to.eql(
+expect(parser('substitution')('[{"%x":"test"},{"%t":"testa"}]')).to.eql(
   [
-    {search:'%s',replacement:'test'},
+    {search:'%x',replacement:'test'},
     {search:'%t',replacement:'testa'}
   ]
 );

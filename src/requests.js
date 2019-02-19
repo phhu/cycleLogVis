@@ -61,7 +61,8 @@ export const getResponse = sources => ({
     .map(ifElse(resIsJson      // if the content type is JSON, use json parser directly, else 
       ,pipe(...jsonTransforms({url:category}))
       ,pipe(...transforms)
-    ))  
+    ))
+    .debug(res=>console.log("transformed",res))  
     .map(toStreamWithAnyPromisesResolved) 
     .flatten()     
     .map(forceIntoArray) 
