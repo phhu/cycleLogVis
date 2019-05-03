@@ -7,11 +7,11 @@ const moment = require('moment');
 import eventDrops from '../../../../Documents/GitHub/eventDrops/dist';
 import './style.css';
 
-//import {clone} from 'ramda';
+import {clone} from 'ramda';
 import {parse as toDate, startOfToday, startOfTomorrow} from 'date-fns';
 
 const tooltip = d3
-  .select('body')
+  .select('body') 
   .append('div')
   .classed('tooltip', true)
   .style('opacity', 0)
@@ -58,8 +58,10 @@ const makeChart = opts => eventDrops({
     onClick: function (data,index) {
       console.log("Clicked drop:" ,index , this, "data:", data);
       //data.lastClicked = true;
-      //d3.select(this).attr('fill','yellow');
-      update({type:'DROP_CLICK', payload: getAllEvents(data)});
+      d3.selectAll('.drop').attr('stroke',null);
+      d3.select(this).attr('stroke','orange');
+      d3.select(this).attr('stroke-width','2');
+      update({type:'DROP_CLICK', payload: getAllEvents(clone(data))});    // if don't clone clicked drop disappears
     },
     onMouseOver: data =>
       tooltip
